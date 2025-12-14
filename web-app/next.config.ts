@@ -6,8 +6,6 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
-  basePath: '/car-smart-park',
-  assetPrefix: '/car-smart-park/',
 };
 
 export default nextConfig;

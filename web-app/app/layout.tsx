@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Cairo } from "next/font/google";
 import "./globals.css";
+import { ParkingProvider } from "@/context/ParkingContext";
 
 const cairo = Cairo({ subsets: ["arabic"] });
 
@@ -17,7 +18,9 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl" className="dark">
       <body className={`${cairo.className} antialiased bg-slate-950`}>
-        {children}
+        <ParkingProvider>
+          {children}
+        </ParkingProvider>
       </body>
     </html>
   );
