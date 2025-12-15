@@ -16,14 +16,20 @@ interface PaymentReceiptModalProps {
         entryTime: Date;
         amount: number;
         spotId?: string;
+        ticketId: string;
     } | null;
 }
 
 export default function PaymentReceiptModal({ isOpen, onClose, onPrint, vehicleDetails }: PaymentReceiptModalProps) {
+    const [origin, setOrigin] = React.useState('');
+
+    React.useEffect(() => {
+        setOrigin(window.location.origin);
+    }, []);
+
     if (!isOpen || !vehicleDetails) return null;
 
-    const receiptId = `RCPT-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-    const driverUrl = `https://smart-park.app/driver?ticket=${receiptId}&plate=${vehicleDetails.plate}`;
+    const driverUrl = `${origin}/driver?ticket=${vehicleDetails.ticketId}&plate=${vehicleDetails.plate}`;
 
     return (
         <AnimatePresence>
@@ -96,7 +102,7 @@ export default function PaymentReceiptModal({ isOpen, onClose, onPrint, vehicleD
                             </div>
 
                             <div className="text-center text-[10px] font-mono text-slate-300 mt-4">
-                                {receiptId}
+                                {vehicleDetails.ticketId}
                             </div>
                         </div>
                     </div>

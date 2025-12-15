@@ -320,7 +320,8 @@ export default function Dashboard() {
           plate: lastReceipt.plate,
           entryTime: lastReceipt.entryTime,
           amount: 5000, // Standard Entry Fee
-          spotId: lastReceipt.spotId
+          spotId: lastReceipt.spotId,
+          ticketId: lastReceipt.id
         } : null}
       />
     </main>
