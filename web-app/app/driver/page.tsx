@@ -5,9 +5,17 @@ import { Search, MapPin, Car, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
+interface SearchResult {
+    found: boolean;
+    floor?: number;
+    spot?: string;
+    entryTime?: Date;
+    cost?: number;
+}
+
 export default function DriverApp() {
     const [plate, setPlate] = useState('');
-    const [searchResult, setSearchResult] = useState<any>(null);
+    const [searchResult, setSearchResult] = useState<SearchResult | null>(null);
     const [loading, setLoading] = useState(false);
 
     const handleSearch = async (e: React.FormEvent) => {

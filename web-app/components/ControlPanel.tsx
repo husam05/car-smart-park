@@ -15,6 +15,26 @@ interface ControlPanelProps {
     onGateChange?: (gate: 'entry' | 'exit', isOpen: boolean) => void;
 }
 
+const GateStatusIndicator = ({ isOpen, countdown }: { isOpen: boolean, countdown: number | null }) => (
+    <div className={cn(
+        "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide transition-all duration-500",
+        isOpen
+            ? "bg-green-500/20 text-green-400 border border-green-500/30 shadow-[0_0_15px_rgba(34,197,94,0.2)]"
+            : "bg-slate-800 text-slate-400 border border-slate-700"
+    )}>
+        <div className={cn(
+            "w-2 h-2 rounded-full transition-all duration-500",
+            isOpen ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)] animate-pulse" : "bg-slate-600"
+        )}></div>
+        {isOpen ? (
+            <span className="flex items-center gap-1">
+                مفتوحة
+                {countdown !== null && <span className="text-yellow-400 ml-1">({countdown}s)</span>}
+            </span>
+        ) : 'مغلقة'}
+    </div>
+);
+
 const ControlPanel = forwardRef<GateControlRef, ControlPanelProps>(({ onGateChange }, ref) => {
     const [entryGateOpen, setEntryGateOpen] = useState(false);
     const [exitGateOpen, setExitGateOpen] = useState(false);
@@ -55,6 +75,7 @@ const ControlPanel = forwardRef<GateControlRef, ControlPanelProps>(({ onGateChan
             }, 1000);
             return () => clearTimeout(timer);
         } else if (entryAutoCloseTime === 0) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setEntryGateOpen(false);
             setEntryAutoCloseTime(null);
             onGateChange?.('entry', false);
@@ -69,6 +90,7 @@ const ControlPanel = forwardRef<GateControlRef, ControlPanelProps>(({ onGateChan
             }, 1000);
             return () => clearTimeout(timer);
         } else if (exitAutoCloseTime === 0) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setExitGateOpen(false);
             setExitAutoCloseTime(null);
             onGateChange?.('exit', false);
@@ -111,26 +133,6 @@ const ControlPanel = forwardRef<GateControlRef, ControlPanelProps>(({ onGateChan
             onGateChange?.('exit', false);
         }
     };
-
-    const GateStatusIndicator = ({ isOpen, countdown }: { isOpen: boolean, countdown: number | null }) => (
-        <div className={cn(
-            "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide transition-all duration-500",
-            isOpen
-                ? "bg-green-500/20 text-green-400 border border-green-500/30 shadow-[0_0_15px_rgba(34,197,94,0.2)]"
-                : "bg-slate-800 text-slate-400 border border-slate-700"
-        )}>
-            <div className={cn(
-                "w-2 h-2 rounded-full transition-all duration-500",
-                isOpen ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)] animate-pulse" : "bg-slate-600"
-            )}></div>
-            {isOpen ? (
-                <span className="flex items-center gap-1">
-                    مفتوحة
-                    {countdown !== null && <span className="text-yellow-400 ml-1">({countdown}s)</span>}
-                </span>
-            ) : 'مغلقة'}
-        </div>
-    );
 
     return (
         <div className="glass-card p-6 rounded-xl relative overflow-hidden">

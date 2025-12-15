@@ -65,7 +65,7 @@ export default function SystemMonitor({ dbLogs }: SystemMonitorProps) {
                     ].map((tab) => (
                         <button
                             key={tab.id}
-                            onClick={() => setActiveTab(tab.id as any)}
+                            onClick={() => setActiveTab(tab.id as 'overview' | 'nodes' | 'database' | 'network')}
                             className={cn(
                                 "flex-1 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wide transition-all border-l border-white/5 hover:bg-white/5",
                                 activeTab === tab.id ? "bg-blue-600/10 text-blue-400 border-b-2 border-b-blue-500" : "text-slate-400"
@@ -122,7 +122,7 @@ export default function SystemMonitor({ dbLogs }: SystemMonitorProps) {
                                             {item.type.includes('بصري') ? <Server size={14} className="text-slate-500" /> : <Wifi size={14} className="text-slate-500" />}
                                             <span className="font-bold text-slate-200 text-sm">{item.name}</span>
                                         </div>
-                                        <StatusBadge status={item.status as any} />
+                                        <StatusBadge status={item.status as 'ok' | 'warn' | 'err'} />
                                     </div>
                                     <div className="mt-4 flex justify-between items-end">
                                         <span className="text-[10px] text-slate-500 uppercase">{item.type}</span>

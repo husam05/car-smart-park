@@ -24,26 +24,6 @@ export default function CameraFeed({ onVehicleDetected, type, activeVehicle, sho
     const [manualPart2, setManualPart2] = useState('');
     const [manualCity, setManualCity] = useState('Baghdad');
 
-    // Watch for external trigger (Auto Simulation)
-    useEffect(() => {
-        if (activeVehicle && activeVehicle !== prevVehicleRef.current) {
-            triggerScan(activeVehicle.plate, activeVehicle.city);
-        } else if (!activeVehicle && prevVehicleRef.current) {
-            // Vehicle went from something to null - clear display
-            setLastPlate(null);
-            setAiStats(null);
-        }
-        prevVehicleRef.current = activeVehicle || null;
-    }, [activeVehicle]);
-
-    // Also reset when shouldReset becomes true
-    useEffect(() => {
-        if (shouldReset && lastPlate) {
-            setLastPlate(null);
-            setAiStats(null);
-        }
-    }, [shouldReset, lastPlate]);
-
     const triggerScan = (plate: string, city: string) => {
         setIsScanning(true);
         setLastPlate(null);
@@ -63,6 +43,29 @@ export default function CameraFeed({ onVehicleDetected, type, activeVehicle, sho
             onVehicleDetected(plate, city);
         }, 1500);
     };
+
+    // Watch for external trigger (Auto Simulation)
+    useEffect(() => {
+        if (activeVehicle && activeVehicle !== prevVehicleRef.current) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            triggerScan(activeVehicle.plate, activeVehicle.city);
+        } else if (!activeVehicle && prevVehicleRef.current) {
+            // Vehicle went from something to null - clear display
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setLastPlate(null);
+            setAiStats(null);
+        }
+        prevVehicleRef.current = activeVehicle || null;
+    }, [activeVehicle]);
+
+    // Also reset when shouldReset becomes true
+    useEffect(() => {
+        if (shouldReset && lastPlate) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setLastPlate(null);
+            setAiStats(null);
+        }
+    }, [shouldReset, lastPlate]);
 
     const handleManualSimulate = () => {
         const { code, city } = generateLicensePlate();

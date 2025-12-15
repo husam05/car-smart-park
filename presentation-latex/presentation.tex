@@ -1,0 +1,153 @@
+\documentclass{beamer}
+\usetheme{Madrid}
+\usecolortheme{default}
+
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{listings}
+
+% Meta-data
+\title{AI Smart Parking System}
+\subtitle{Work Process \& Technical Review}
+\author{Development Team}
+\date{\today}
+
+\begin{document}
+
+% Title Slide
+\begin{frame}
+    \titlepage
+\end{frame}
+
+% Table of Contents
+\begin{frame}{Table of Contents}
+    \tableofcontents
+\end{frame}
+
+% Section 1: Overview
+\section{Project Overview}
+\begin{frame}{Project Overview}
+    \begin{itemize}
+        \item \textbf{Project Name:} AI Smart Parking System
+        \item \textbf{Goal:} Manage 100 parking spots efficiently using AI and Computer Vision.
+        \item \textbf{Core Functionality:}
+        \begin{itemize}
+            \item Real-time monitoring of parking spots.
+            \item License Plate Recognition (Simulated/Planned).
+            \item Automated billing and gate control.
+            \item Interactive Web Dashboard.
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+% Section 2: Architecture
+\section{System Architecture}
+\begin{frame}{Tech Stack}
+    \begin{columns}
+        \column{0.5\textwidth}
+        \textbf{Frontend (Web App)}
+        \begin{itemize}
+            \item Next.js 16 (App Router)
+            \item React 19 \& TypeScript
+            \item Tailwind CSS v4
+            \item Framer Motion (Animations)
+        \end{itemize}
+        
+        \column{0.5\textwidth}
+        \textbf{Backend \& Data}
+        \begin{itemize}
+            \item LocalStorage (Current Prototype)
+            \item Firebase (Planned for Real-time)
+            \item Python YOLOv8 (AI Model)
+        \end{itemize}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Data Flow}
+    \begin{enumerate}
+        \item \textbf{Entry:} Vehicle detected by Camera Feed component.
+        \item \textbf{Processing:} License plate recognized (simulated generation).
+        \item \textbf{Storage:} Entry time and State saved to local store.
+        \item \textbf{Monitoring:} Dashboard updates spot status (Red/Green).
+        \item \textbf{Exit:} Vehicle identified, duration calculated, invoice generated.
+    \end{enumerate}
+\end{frame}
+
+% Section 3: Key Features
+\section{Key Features}
+\begin{frame}{Current Features}
+    \begin{itemize}
+        \item \textbf{Interactive Map:} 
+        \begin{itemize}
+            \item Visual grid layout for 2 Floors (A \& B).
+            \item Color-coded status (Occupied vs Free).
+        \end{itemize}
+        \item \textbf{Simulation Engine:}
+        \begin{itemize}
+            \item Automatic car generation mode.
+            \item Realistic entry/exit scenarios.
+        \end{itemize}
+        \item \textbf{Financial Reporting:}
+        \begin{itemize}
+            \item Automated cost calculation ($2000/hr).
+            \item Daily revenue tracking.
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+% Section 4: Technical Review
+\section{Technical Review \& Enhancements}
+\begin{frame}{Review: Areas for Enhancement}
+    \begin{alertblock}{1. State Management}
+        Currently relies on \texttt{localStorage} and \texttt{useState}.
+        \textbf{Enhancement:} Migrate to \textbf{Firebase Firestore} for real-time synchronization between multiple devices/admins.
+    \end{alertblock}
+
+    \begin{alertblock}{2. Simulation Logic}
+        Simulation runs client-side. Multiple open tabs cause data conflict.
+        \textbf{Enhancement:} Move logic to \textbf{Cloud Functions} or a dedicated backend service.
+    \end{alertblock}
+\end{frame}
+
+\begin{frame}{Review: Code Structure}
+    \begin{exampleblock}{Refactoring Recommendation}
+        The \texttt{page.tsx} file is large (>500 lines).
+        \textbf{Action:} Extract logic into Custom Hooks:
+        \begin{itemize}
+            \item \texttt{useParkingSlots()} for state.
+            \item \texttt{useSimulation()} for auto-generation.
+            \item \texttt{useRevenue()} for calculations.
+        \end{itemize}
+    \end{exampleblock}
+\end{frame}
+
+\begin{frame}{Review: Security \& AI}
+    \begin{itemize}
+        \item \textbf{Security:}
+        Pricing logic is currently on the client (browser).
+        \textit{Fix:} Move billing calculation to backend API to prevent tampering.
+        
+        \item \textbf{AI Integration:}
+        Currently uses random string generation for plates.
+        \textit{Fix:} Connect to a Python API (FastAPI) running YOLOv8 that processes actual images from the camera feed.
+    \end{itemize}
+\end{frame}
+
+% Section 5: Conclusion
+\section{Conclusion}
+\begin{frame}{Conclusion}
+    The current "Smart Park" prototype is a robust frontend demonstration with excellent UI/UX.
+    
+    \vspace{1em}
+    \textbf{Next Steps:}
+    \begin{enumerate}
+        \item Connect Firebase for persistence.
+        \item Refactor `page.tsx`.
+        \item Integrate real AI/Computer Vision service.
+    \end{enumerate}
+    
+    \vspace{1em}
+    \centerline{\Large \textbf{Thank You}}
+\end{frame}
+
+\end{document}

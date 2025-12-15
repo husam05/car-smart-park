@@ -1,261 +1,37 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
-import { ParkingSpot, LogEntry } from '@/types';
-import { generateLicensePlate, formatCurrency, cn } from '@/lib/utils';
+import { formatCurrency, cn } from '@/lib/utils';
 import StatsCard from '@/components/StatsCard';
 import ParkingMap from '@/components/ParkingMap';
 import CameraFeed from '@/components/CameraFeed';
 import LogList from '@/components/LogList';
-import ControlPanel, { GateControlRef } from '@/components/ControlPanel';
+import ControlPanel from '@/components/ControlPanel';
 import FinancialReport from '@/components/FinancialReport';
-import { Car, DollarSign, Activity, Users, Cpu, Play, Square, Info, Server, Database, Radio, ArrowLeftRight, Camera, Network, Router, Monitor, Zap, Cable, FileText, Printer } from 'lucide-react';
+import { useParkingSystem } from '@/hooks/useParkingSystem';
+import { Car, Activity, Users, Play, Square, ArrowLeftRight, FileText, Printer } from 'lucide-react';
 
 export default function Dashboard() {
-  const [spots, setSpots] = useState<ParkingSpot[]>([]);
-  const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [activeFloor, setActiveFloor] = useState<1 | 2>(1);
-  const [mounted, setMounted] = useState(false);
-  const [autoSimulate, setAutoSimulate] = useState(false);
-  const [showAiInfo, setShowAiInfo] = useState(false);
+  const {
+    spots,
+    logs,
+    activeFloor,
+    setActiveFloor,
+    stats,
+    incomingCar,
+    outgoingCar,
+    lastReceipt,
+    autoSimulate,
+    setAutoSimulate,
+    mounted,
+    handleEntry,
+    handleExit,
+    finalizeEntry,
+    gateControlRef
+  } = useParkingSystem();
 
-  /* Payment & Reporting State */
   const [showReport, setShowReport] = useState(false);
-  const [lastReceipt, setLastReceipt] = useState<{
-    type: 'ENTRY' | 'EXIT';
-    id: string;
-    plate: string;
-    city: string;
-    entryTime: Date;
-    exitTime?: Date;
-    duration?: string;
-    amount?: number;
-    paymentMethod?: 'CASH';
-  } | null>(null);
-
-  /* State for Animation */
-  const [incomingCar, setIncomingCar] = useState<{ plate: string, city: string } | null>(null);
-  const [outgoingCar, setOutgoingCar] = useState<{ plate: string, city: string } | null>(null);
-
-  /* Gate Control Ref */
-  const gateControlRef = useRef<GateControlRef>(null);
-
-  // Statistics
-  const parkedCount = spots.filter(s => s.status === 'occupied').length;
-  const occupiedCount = parkedCount + (outgoingCar ? 1 : 0);
-
-  const totalRevenue = logs.reduce((acc, log) => acc + (log.amount || 0), 0);
-  const todaysExits = logs.filter(l => l.type === 'exit').length;
-
-  // Initialize Spots
-  useEffect(() => {
-    const savedSpots = localStorage.getItem('smartpark_spots_v1');
-
-    if (savedSpots) {
-      try {
-        const parsed = JSON.parse(savedSpots).map((s: any) => ({
-          ...s,
-          lastChanged: new Date(s.lastChanged),
-          vehicle: s.vehicle ? {
-            ...s.vehicle,
-            entryTime: new Date(s.vehicle.entryTime)
-          } : undefined
-        }));
-        setSpots(parsed);
-
-        setMounted(true);
-        return;
-      } catch (e) {
-        console.error("Failed to parse saved spots", e);
-      }
-    }
-
-    const initialSpots: ParkingSpot[] = [];
-    const usedPlates = new Set<string>();
-
-    for (let f = 1; f <= 2; f++) {
-      for (let i = 1; i <= 50; i++) {
-        let generated = generateLicensePlate();
-        while (usedPlates.has(generated.code)) {
-          generated = generateLicensePlate();
-        }
-        usedPlates.add(generated.code);
-
-        initialSpots.push({
-          id: `${f === 1 ? 'A' : 'B'}-${i.toString().padStart(2, '0')}`,
-          status: Math.random() > 0.8 ? 'occupied' : 'free',
-          floor: f as 1 | 2,
-          lastChanged: new Date(),
-          vehicle: Math.random() > 0.8 ? {
-            plateCode: generated.code,
-            city: generated.city,
-            entryTime: new Date(Date.now() - Math.random() * 3600000 * 5),
-          } : undefined
-        });
-      }
-    }
-    setSpots(initialSpots);
-    setMounted(true);
-  }, []);
-
-  // Persist Changes
-  useEffect(() => {
-    if (mounted && spots.length > 0) {
-      localStorage.setItem('smartpark_spots_v1', JSON.stringify(spots));
-    }
-  }, [spots, mounted]);
-
-
-  // Handlers
-  const handleEntry = useCallback(async (plate: string, city: string) => {
-    let exists = false;
-    setSpots(prev => {
-      if (prev.some(s => s.vehicle?.plateCode === plate)) {
-        exists = true;
-        return prev;
-      }
-      return prev;
-    });
-    if (exists) return;
-
-    setIncomingCar({ plate, city });
-    await new Promise(r => setTimeout(r, 1000));
-
-    setLastReceipt({
-      type: 'ENTRY',
-      id: Math.random().toString(36).substr(2, 9).toUpperCase(),
-      plate: plate,
-      city: city,
-      entryTime: new Date()
-    });
-  }, []);
-
-  const finalizeEntry = useCallback(() => {
-    if (!lastReceipt || lastReceipt.type !== 'ENTRY') return;
-
-    const { plate, city } = lastReceipt;
-
-    setSpots((prevSpots) => {
-      const freeSpotIndex = prevSpots.findIndex(s => s.status === 'free');
-      if (freeSpotIndex === -1) {
-        setIncomingCar(null);
-        return prevSpots;
-      }
-
-      const newSpots = [...prevSpots];
-      const spot = { ...newSpots[freeSpotIndex] };
-      spot.status = 'occupied';
-      spot.lastChanged = new Date();
-      spot.vehicle = {
-        plateCode: plate,
-        city: city,
-        entryTime: new Date()
-      };
-      newSpots[freeSpotIndex] = spot;
-      return newSpots;
-    });
-
-    setIncomingCar(null);
-    setLastReceipt(null);
-
-    const newLog: LogEntry = {
-      id: lastReceipt.id,
-      type: 'entry',
-      timestamp: new Date(),
-      plate: plate,
-      gateId: 'MAIN-ENTRY',
-      receiptPrinted: true // Entry receipt was printed at gate
-    };
-    setLogs(prev => [newLog, ...prev]);
-
-  }, [lastReceipt]);
-
-  const handleExit = useCallback(async (plate?: string) => {
-    let targetVehicle: { plate: string, city: string, entryTime: Date, spotIndex: number } | null = null;
-
-    setSpots(prev => {
-      let spotIndex = -1;
-      if (plate) {
-        spotIndex = prev.findIndex(s => s.status === 'occupied' && s.vehicle?.plateCode === plate);
-      } else {
-        const occupiedIndices = prev.map((s, i) => s.status === 'occupied' ? i : -1).filter(i => i !== -1);
-        if (occupiedIndices.length > 0) {
-          spotIndex = occupiedIndices[Math.floor(Math.random() * occupiedIndices.length)];
-        }
-      }
-
-      if (spotIndex !== -1 && prev[spotIndex].vehicle) {
-        const v = prev[spotIndex].vehicle!;
-        targetVehicle = {
-          plate: v.plateCode,
-          city: v.city,
-          entryTime: v.entryTime,
-          spotIndex: spotIndex
-        };
-      }
-      return prev;
-    });
-
-    if (!targetVehicle) return;
-    const vehicleData = targetVehicle as { plate: string, city: string, entryTime: Date, spotIndex: number };
-
-    // Calculate payment
-    const exitTime = new Date();
-    const durationMs = exitTime.getTime() - new Date(vehicleData.entryTime).getTime();
-    const durationHours = durationMs / (1000 * 60 * 60);
-    const cost = Math.max(2000, Math.ceil(durationHours) * 2000);
-
-    // Show car leaving animation
-    setOutgoingCar({ plate: vehicleData.plate, city: vehicleData.city });
-
-    // Free the spot
-    setSpots(prev => {
-      const newSpots = [...prev];
-      const spot = { ...newSpots[vehicleData.spotIndex] };
-      spot.status = 'free';
-      spot.vehicle = undefined;
-      spot.lastChanged = new Date();
-      newSpots[vehicleData.spotIndex] = spot;
-      return newSpots;
-    });
-
-    // Open exit gate
-    gateControlRef.current?.openExitGate();
-
-    // Log exit
-    setLogs(prev => [{
-      id: Math.random().toString(36).substr(2, 9).toUpperCase(),
-      type: 'exit',
-      timestamp: exitTime,
-      plate: vehicleData.plate,
-      gateId: 'MAIN-EXIT',
-      amount: cost
-    }, ...prev]);
-
-    // Clear animation after delay
-    setTimeout(() => {
-      setOutgoingCar(null);
-    }, 3000);
-
-  }, []);
-
-  // Auto Simulation Logic
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (autoSimulate) {
-      interval = setInterval(() => {
-        const randomAction = Math.random();
-        if (randomAction > 0.45) {
-          const { code, city } = generateLicensePlate();
-          handleEntry(code, city);
-        } else {
-          handleExit();
-        }
-      }, 40000); // 40 seconds interval for realistic simulation
-    }
-    return () => clearInterval(interval);
-  }, [autoSimulate, handleEntry, handleExit]);
 
   if (!mounted) return null;
 
@@ -280,12 +56,12 @@ export default function Dashboard() {
           <div className="hidden md:flex items-center gap-8 bg-slate-800/50 px-6 py-2 rounded-full border border-white/5">
             <div className="flex flex-col items-center">
               <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">الإشغال</span>
-              <span className="text-2xl font-black text-white leading-none">{occupiedCount}<span className="text-sm text-slate-500 font-normal">/100</span></span>
+              <span className="text-2xl font-black text-white leading-none">{stats.occupiedCount}<span className="text-sm text-slate-500 font-normal">/100</span></span>
             </div>
             <div className="w-px h-8 bg-white/10"></div>
             <div className="flex flex-col items-center">
               <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">الإيرادات</span>
-              <span className="text-2xl font-black text-green-400 leading-none">{formatCurrency(totalRevenue)}</span>
+              <span className="text-2xl font-black text-green-400 leading-none">{formatCurrency(stats.totalRevenue)}</span>
             </div>
 
             {/* Reports Button */}
@@ -332,9 +108,9 @@ export default function Dashboard() {
         <div className="space-y-6 flex flex-col h-full">
           {/* Stats Row */}
           <div className="grid grid-cols-4 gap-4">
-            <StatsCard title="مواقف متاحة" value={100 - occupiedCount} icon={Square} color="blue" />
+            <StatsCard title="مواقف متاحة" value={100 - stats.occupiedCount} icon={Square} color="blue" />
             <StatsCard title="مستخدمين حاليين" value={12} icon={Users} color="purple" />
-            <StatsCard title="مغادرات اليوم" value={todaysExits} icon={ArrowLeftRight} color="orange" />
+            <StatsCard title="مغادرات اليوم" value={stats.todaysExits} icon={ArrowLeftRight} color="orange" />
             <StatsCard title="حالة النظام" value="متصل" icon={Activity} color="green" />
           </div>
 

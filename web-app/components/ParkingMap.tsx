@@ -47,6 +47,8 @@ const SpotItem = React.memo(({ spot, onClick }: { spot: ParkingSpot, onClick: (s
         prev.spot.vehicle?.plateCode === next.spot.vehicle?.plateCode;
 });
 
+SpotItem.displayName = 'SpotItem';
+
 interface ParkingMapProps {
     spots: ParkingSpot[];
     floor: 1 | 2;

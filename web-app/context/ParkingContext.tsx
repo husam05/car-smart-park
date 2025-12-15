@@ -29,6 +29,7 @@ export function ParkingProvider({ children }: { children: ReactNode }) {
             console.log("Running in Local Simulation Mode (No Firebase Config)");
             const localSpots = localStorage.getItem('smartpark_spots_v1');
             if (localSpots) {
+                // eslint-disable-next-line react-hooks/set-state-in-effect
                 setSpots(JSON.parse(localSpots));
             }
             setLoading(false);
