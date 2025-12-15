@@ -9,6 +9,7 @@ import CameraFeed from '@/components/CameraFeed';
 import LogList from '@/components/LogList';
 import ControlPanel from '@/components/ControlPanel';
 import FinancialReport from '@/components/FinancialReport';
+import PaymentReceiptModal from '@/components/PaymentReceiptModal';
 import { useParkingSystem } from '@/hooks/useParkingSystem';
 import { Car, Activity, Users, Play, Square, ArrowLeftRight, FileText, Printer } from 'lucide-react';
 
@@ -287,6 +288,41 @@ export default function Dashboard() {
           onClose={() => setShowReport(false)}
         />
       )}
+
+      {/* Payment Receipt Modal */}
+      <PaymentReceiptModal
+        isOpen={!!lastReceipt}
+        onClose={() => {
+          // Just close without printing (cancel)
+          finalizeEntry(false);
+        }}
+        onPrint={() => {
+          // Confirm print and open gate
+          finalizeEntry(true);
+          gateControlRef.current?.openEntryGate();
+
+          // Trigger browser print for the receipt part
+          setTimeout(() => {
+            const printContent = document.getElementById('receipt-preview');
+            if (printContent) {
+              const win = window.open('', '', 'height=600,width=400');
+              win?.document.write('<html><head><title>Receipt</title>');
+              win?.document.write('<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">');
+              win?.document.write('</head><body class="p-4">');
+              win?.document.write(printContent.innerHTML);
+              win?.document.write('</body></html>');
+              win?.document.close();
+              win?.print();
+            }
+          }, 500);
+        }}
+        vehicleDetails={lastReceipt ? {
+          plate: lastReceipt.plate,
+          entryTime: lastReceipt.entryTime,
+          amount: 5000, // Standard Entry Fee
+          spotId: lastReceipt.spotId
+        } : null}
+      />
     </main>
   );
 }

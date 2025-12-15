@@ -18,6 +18,7 @@ export function useParkingSystem() {
         plate: string;
         city: string;
         entryTime: Date;
+        spotId?: string;
         exitTime?: Date;
         duration?: string;
         amount?: number;
@@ -103,7 +104,13 @@ export function useParkingSystem() {
         });
     }, [spots]);
 
-    const finalizeEntry = useCallback(async () => {
+    const finalizeEntry = useCallback(async (confirmed: boolean = true) => {
+        if (!confirmed) {
+            setIncomingCar(null);
+            setLastReceipt(null);
+            return;
+        }
+
         if (!lastReceipt || lastReceipt.type !== 'ENTRY') return;
 
         const { plate, city } = lastReceipt;
@@ -113,6 +120,7 @@ export function useParkingSystem() {
         if (!freeSpot) {
             alert("No free spots available!");
             setIncomingCar(null);
+            setLastReceipt(null);
             return;
         }
 
