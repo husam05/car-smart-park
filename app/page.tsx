@@ -86,6 +86,19 @@ export default function Dashboard() {
               <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold group-hover:text-blue-400 transition-colors">الحالة</span>
               <Activity size={20} className="text-slate-200 group-hover:text-blue-400 transition-colors" />
             </Link>
+
+
+            {/* Driver App Link */}
+            <div className="w-px h-8 bg-white/10"></div>
+
+            <Link
+              href="/driver"
+              className="flex flex-col items-center group cursor-pointer"
+              title="تطبيق السائقين"
+            >
+              <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold group-hover:text-blue-400 transition-colors">السائقين</span>
+              <Car size={20} className="text-slate-200 group-hover:text-blue-400 transition-colors" />
+            </Link>
           </div>
 
           <button
@@ -282,12 +295,14 @@ export default function Dashboard() {
       </div>
 
 
-      {showReport && (
-        <FinancialReport
-          logs={logs}
-          onClose={() => setShowReport(false)}
-        />
-      )}
+      {
+        showReport && (
+          <FinancialReport
+            logs={logs}
+            onClose={() => setShowReport(false)}
+          />
+        )
+      }
 
       {/* Payment Receipt Modal */}
       <PaymentReceiptModal
@@ -324,6 +339,6 @@ export default function Dashboard() {
           ticketId: lastReceipt.id
         } : null}
       />
-    </main>
+    </main >
   );
 }

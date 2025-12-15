@@ -1,6 +1,6 @@
 # 🚗 نظام إدارة المواقف الذكي (AI Smart Parking System)
 
-[![Deploy to GitHub Pages](https://github.com/husam05/car-smart-park/workflows/Deploy%20Next.js%20to%20GitHub%20Pages/badge.svg)](https://github.com/husam05/car-smart-park/actions)
+
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-GitHub%20Pages-blue)](https://husam05.github.io/car-smart-park/)
 
 نظام ذكي متكامل لإدارة مواقف السيارات بالذكاء الاصطناعي والرؤية الحاسوبية، يدير 100 موقف سيارة موزعة على طابقين مع بوابة واحدة للدخول والخروج.
