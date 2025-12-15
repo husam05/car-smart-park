@@ -2,9 +2,11 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { LogEntry, ParkingSpot } from '@/types';
 import { Search, MapPin, Car, Clock, CreditCard, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { useParking } from '@/context/ParkingContext';
 
 interface SearchResult {
     found: boolean;
@@ -17,41 +19,78 @@ interface SearchResult {
 
 function DriverAppContent() {
     const searchParams = useSearchParams();
+    const { spots, logs, loading: systemLoading } = useParking(); // Access real data
+
+    // Initial State
     const [plate, setPlate] = useState(searchParams.get('plate') || '');
     const [ticketId, setTicketId] = useState(searchParams.get('ticket') || '');
 
     const [searchResult, setSearchResult] = useState<SearchResult | null>(null);
     const [loading, setLoading] = useState(false);
 
-    // Auto-search if ticket is present
+    // Auto-search if data is ready and params exist
     useEffect(() => {
-        if (ticketId && plate) {
-            handleSearch(new Event('submit') as any);
+        if (!systemLoading && (ticketId || plate)) {
+            handleSearch();
         }
-    }, [ticketId]);
+    }, [ticketId, systemLoading]);
 
-    const handleSearch = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSearch = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
         setLoading(true);
 
-        // TODO: Integrate with Firebase Query using ticketId or plate
-        // Simulating search delay
-        setTimeout(() => {
-            // Mock result
-            if (plate.length > 2 || ticketId) {
-                setSearchResult({
-                    found: true,
-                    floor: 1,
-                    spot: 'A-12',
-                    entryTime: new Date(Date.now() - 3600000), // 1 hour ago
-                    cost: 5000,
-                    paid: true // Pre-paid model
-                });
-            } else {
-                setSearchResult({ found: false });
+        // Simulate a small "processing" delay for UX feeling
+        await new Promise(r => setTimeout(r, 600));
+
+        // 1. Resolve Plate if we only have Ticket ID
+        let targetPlate = plate;
+        let isPaid = false;
+        let targetLog = null;
+
+        if (ticketId && !targetPlate) {
+            targetLog = logs.find(l => l.id === ticketId);
+            if (targetLog) {
+                targetPlate = targetLog.plate;
+                setPlate(targetPlate);
+                // Assume if it's an 'entry' log and has a receipt, it might be paid (or pay-at-gate)
+                if (targetLog.receiptPrinted) isPaid = true;
             }
-            setLoading(false);
-        }, 1500);
+        } else if (ticketId) {
+            // We have both, verify
+            targetLog = logs.find(l => l.id === ticketId);
+            if (targetLog && targetLog.type === 'entry') isPaid = true;
+        }
+
+        // 2. Find Current Spot
+        const currentSpot = spots.find(s =>
+            s.status === 'occupied' &&
+            s.vehicle?.plateCode === targetPlate
+        );
+
+        if (currentSpot && currentSpot.vehicle) {
+            const entryTime = new Date(currentSpot.vehicle.entryTime);
+            // Calc duration/cost if needed dynamically
+            const now = new Date();
+
+            // Simple cost calc just for display (or use default fee)
+            const durationHours = (now.getTime() - entryTime.getTime()) / (1000 * 60 * 60);
+            const currentCost = Math.max(5000, Math.ceil(durationHours) * 2000);
+
+            setSearchResult({
+                found: true,
+                floor: currentSpot.floor,
+                spot: currentSpot.id,
+                entryTime: entryTime,
+                cost: isPaid ? 5000 : currentCost, // Show entry fee if paid, or running cost
+                paid: isPaid
+            });
+        } else {
+            // Not in a spot? Check if it just exited?
+            // For now, simpler: Not Found
+            setSearchResult({ found: false });
+        }
+
+        setLoading(false);
     };
 
     return (
@@ -112,13 +151,13 @@ function DriverAppContent() {
                                     <span className="text-slate-400">حالة التذكرة</span>
                                     <span className="text-green-400 font-bold flex items-center gap-1">
                                         <CheckCircle size={16} />
-                                        مدفوعة مسبقاً
+                                        {searchResult.paid ? 'مدفوعة مسبقاً' : 'جاري الاحتساب'}
                                     </span>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="bg-slate-950/50 p-4 rounded-xl border border-white/5">
-                                        <div className="text-xs text-slate-400 mb-1 flex items-center gap-1"><MapPin size={12} /> الموقع المقترح</div>
+                                        <div className="text-xs text-slate-400 mb-1 flex items-center gap-1"><MapPin size={12} /> الموقع الحالي</div>
                                         <div className="text-xl font-black text-white">
                                             طـ {searchResult.floor} <span className="text-slate-600 mx-1">|</span> {searchResult.spot}
                                         </div>
@@ -133,8 +172,8 @@ function DriverAppContent() {
 
                                 <div className="pt-2">
                                     <div className="flex justify-between items-center text-sm p-3 bg-green-500/10 rounded-lg border border-green-500/20">
-                                        <span className="text-green-300">تم استلام المبلغ</span>
-                                        <span className="text-xl font-bold text-green-400">{searchResult.cost} د.ع</span>
+                                        <span className="text-green-300">المبلغ المسجل</span>
+                                        <span className="text-xl font-bold text-green-400">{searchResult.cost?.toLocaleString()} د.ع</span>
                                     </div>
                                 </div>
 
@@ -144,8 +183,12 @@ function DriverAppContent() {
                             </div>
                         ) : (
                             <div className="text-center py-4">
-                                <div className="text-red-400 font-bold mb-1">لم يتم العثور على التذكرة</div>
-                                <p className="text-sm text-slate-500">تأكد من رقم اللوحة وحاول مرة أخرى</p>
+                                <div className="text-red-400 font-bold mb-1">لم يتم العثور على المركبة</div>
+                                <p className="text-sm text-slate-500">
+                                    عذراً، هذه المركبة غير موجودة حالياً في الكراج.
+                                    <br />
+                                    تأكد من رقم اللوحة أو أنك قد غادرت بالفعل.
+                                </p>
                             </div>
                         )}
                     </div>
