@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { Search, MapPin, Car, Clock } from 'lucide-react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Search, MapPin, Car, Clock, CreditCard, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
@@ -11,28 +12,40 @@ interface SearchResult {
     spot?: string;
     entryTime?: Date;
     cost?: number;
+    paid?: boolean;
 }
 
-export default function DriverApp() {
-    const [plate, setPlate] = useState('');
+function DriverAppContent() {
+    const searchParams = useSearchParams();
+    const [plate, setPlate] = useState(searchParams.get('plate') || '');
+    const [ticketId, setTicketId] = useState(searchParams.get('ticket') || '');
+
     const [searchResult, setSearchResult] = useState<SearchResult | null>(null);
     const [loading, setLoading] = useState(false);
+
+    // Auto-search if ticket is present
+    useEffect(() => {
+        if (ticketId && plate) {
+            handleSearch(new Event('submit') as any);
+        }
+    }, [ticketId]);
 
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
 
-        // TODO: Integrate with Firebase Query
+        // TODO: Integrate with Firebase Query using ticketId or plate
         // Simulating search delay
         setTimeout(() => {
             // Mock result
-            if (plate.length > 2) {
+            if (plate.length > 2 || ticketId) {
                 setSearchResult({
                     found: true,
                     floor: 1,
                     spot: 'A-12',
                     entryTime: new Date(Date.now() - 3600000), // 1 hour ago
-                    cost: 2000
+                    cost: 5000,
+                    paid: true // Pre-paid model
                 });
             } else {
                 setSearchResult({ found: false });
@@ -48,7 +61,10 @@ export default function DriverApp() {
                     <div className="bg-blue-600 p-2 rounded-lg">
                         <Car className="text-white w-6 h-6" />
                     </div>
-                    <h1 className="text-xl font-bold">خدمات السائقين</h1>
+                    <div className="flex flex-col">
+                        <h1 className="text-xl font-bold">خدمات السائقين</h1>
+                        {ticketId && <span className="text-[10px] text-slate-400 font-mono">ID: {ticketId}</span>}
+                    </div>
                 </div>
                 <Link href="/" className="text-sm text-slate-400 hover:text-white">
                     لوحة التحكم
@@ -61,7 +77,7 @@ export default function DriverApp() {
                 <div className="bg-slate-900/50 p-6 rounded-2xl border border-white/5 shadow-xl">
                     <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
                         <Search className="text-blue-400" size={20} />
-                        أين مركبتي؟
+                        ابحث عن مركبتك
                     </h2>
                     <form onSubmit={handleSearch} className="space-y-4">
                         <div>
@@ -79,7 +95,7 @@ export default function DriverApp() {
                             disabled={loading || !plate}
                             className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-500 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-blue-900/20"
                         >
-                            {loading ? 'جاري البحث...' : 'بحث عن المركبة'}
+                            {loading ? 'جاري البحث...' : 'عرض التفاصيل'}
                         </button>
                     </form>
                 </div>
@@ -93,42 +109,42 @@ export default function DriverApp() {
                         {searchResult.found ? (
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between border-b border-white/5 pb-4">
-                                    <span className="text-slate-400">حالة المركبة</span>
+                                    <span className="text-slate-400">حالة التذكرة</span>
                                     <span className="text-green-400 font-bold flex items-center gap-1">
-                                        <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                                        موجودة في المواقف
+                                        <CheckCircle size={16} />
+                                        مدفوعة مسبقاً
                                     </span>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="bg-slate-950/50 p-4 rounded-xl border border-white/5">
-                                        <div className="text-xs text-slate-400 mb-1 flex items-center gap-1"><MapPin size={12} /> الموقع</div>
+                                        <div className="text-xs text-slate-400 mb-1 flex items-center gap-1"><MapPin size={12} /> الموقع المقترح</div>
                                         <div className="text-xl font-black text-white">
                                             طـ {searchResult.floor} <span className="text-slate-600 mx-1">|</span> {searchResult.spot}
                                         </div>
                                     </div>
                                     <div className="bg-slate-950/50 p-4 rounded-xl border border-white/5">
-                                        <div className="text-xs text-slate-400 mb-1 flex items-center gap-1"><Clock size={12} /> المدة</div>
+                                        <div className="text-xs text-slate-400 mb-1 flex items-center gap-1"><Clock size={12} /> وقت الدخول</div>
                                         <div className="text-xl font-bold text-white">
-                                            1 س 12 د
+                                            {searchResult.entryTime?.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                                         </div>
                                     </div>
                                 </div>
 
                                 <div className="pt-2">
-                                    <div className="flex justify-between items-center text-sm">
-                                        <span className="text-slate-400">التكلفة التقديرة</span>
-                                        <span className="text-xl font-bold text-blue-400">{searchResult.cost} د.ع</span>
+                                    <div className="flex justify-between items-center text-sm p-3 bg-green-500/10 rounded-lg border border-green-500/20">
+                                        <span className="text-green-300">تم استلام المبلغ</span>
+                                        <span className="text-xl font-bold text-green-400">{searchResult.cost} د.ع</span>
                                     </div>
                                 </div>
 
-                                <button className="w-full mt-2 py-2 bg-white/5 hover:bg-white/10 text-slate-300 rounded-lg text-sm transition-colors">
-                                    عرض المسار إلى المركبة
-                                </button>
+                                <div className="text-center text-xs text-slate-500 mt-4">
+                                    نتمنى لك يوماً سعيداً! البوابة ستفتح تلقائياً عند المغادرة.
+                                </div>
                             </div>
                         ) : (
                             <div className="text-center py-4">
-                                <div className="text-red-400 font-bold mb-1">لم يتم العثور على المركبة</div>
+                                <div className="text-red-400 font-bold mb-1">لم يتم العثور على التذكرة</div>
                                 <p className="text-sm text-slate-500">تأكد من رقم اللوحة وحاول مرة أخرى</p>
                             </div>
                         )}
@@ -153,7 +169,17 @@ export default function DriverApp() {
                     </button>
                 </div>
 
-            </main>
-        </div>
+            </main >
+        </div >
     );
 }
+
+export default function DriverApp() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">Loading...</div>}>
+            <DriverAppContent />
+        </Suspense>
+    );
+}
+
+
