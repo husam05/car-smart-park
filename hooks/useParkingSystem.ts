@@ -376,7 +376,7 @@ export function useParkingSystem() {
         if (autoSimulate && lastReceipt?.type === 'ENTRY') {
             const timer = setTimeout(() => {
                 finalizeEntry(true);
-            }, 1500);
+            }, 5000); // Increased to 5 seconds to allow users to see the receipt
             return () => clearTimeout(timer);
         }
     }, [autoSimulate, lastReceipt, finalizeEntry]);

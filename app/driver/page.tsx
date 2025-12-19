@@ -94,7 +94,7 @@ function DriverAppContent() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-200 p-4" dir="rtl" style={{ fontFamily: 'system-ui, -apple-system, "Segoe UI", Arial, sans-serif' }}>
+        <div className="min-h-screen bg-slate-950 text-slate-200 p-4" dir="rtl">
             <header className="flex justify-between items-center mb-8 pt-4">
                 <div className="flex items-center gap-2">
                     <div className="bg-blue-600 p-2 rounded-lg">
@@ -126,8 +126,7 @@ function DriverAppContent() {
                                 value={plate}
                                 onChange={(e) => setPlate(e.target.value)}
                                 placeholder="مثال: كربلاء | ن | 30817"
-                                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-lg focus:outline-none focus:border-blue-500 transition-colors text-center tracking-wide"
-                                style={{ fontFamily: 'system-ui, -apple-system, "Segoe UI", Arial, sans-serif' }}
+                                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-lg focus:outline-none focus:border-blue-500 transition-colors text-center"
                                 dir="rtl"
                             />
                             <p className="text-xs text-slate-500 mt-1 text-center">أدخل رقم اللوحة كما هو مكتوب</p>
@@ -153,7 +152,7 @@ function DriverAppContent() {
                                 {/* License Plate Display */}
                                 <div className="bg-slate-950/50 p-4 rounded-xl border border-white/5 text-center">
                                     <div className="text-xs text-slate-400 mb-2">رقم اللوحة</div>
-                                    <div className="text-2xl font-bold text-white tracking-wide" style={{ fontFamily: 'system-ui, -apple-system, "Segoe UI", Arial, sans-serif' }} dir="rtl">
+                                    <div className="text-2xl font-bold text-white" dir="rtl">
                                         {plate}
                                     </div>
                                 </div>
