@@ -113,9 +113,12 @@ export function useParkingSystem() {
         setIncomingCar({ plate, city });
         await new Promise(r => setTimeout(r, 1000));
 
+        // Generate a stable ticket ID using timestamp + random string
+        const ticketId = `TKT-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
+
         setLastReceipt({
             type: 'ENTRY',
-            id: Math.random().toString(36).substr(2, 9).toUpperCase(),
+            id: ticketId,
             plate: plate,
             city: city,
             entryTime: new Date()
@@ -220,7 +223,7 @@ export function useParkingSystem() {
 
         // Log Exit locally
         const newLog: LogEntry = {
-            id: Math.random().toString(36).substr(2, 9).toUpperCase(),
+            id: `EXIT-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`,
             type: 'exit',
             timestamp: exitTime,
             plate: vehicleData.plateCode,
@@ -245,9 +248,12 @@ export function useParkingSystem() {
         setIncomingCar({ plate, city });
         await new Promise(r => setTimeout(r, 1000));
 
+        // Generate a stable ticket ID using timestamp + random string
+        const ticketId = `TKT-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
+
         setLastReceipt({
             type: 'ENTRY',
-            id: Math.random().toString(36).substr(2, 9).toUpperCase(),
+            id: ticketId,
             plate: plate,
             city: city,
             entryTime: new Date()
@@ -328,7 +334,7 @@ export function useParkingSystem() {
         await ParkingService.freeSpot(targetSpot.id);
 
         await ParkingService.addLog({
-            id: Math.random().toString(36).substr(2, 9).toUpperCase(),
+            id: `EXIT-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`,
             type: 'exit',
             timestamp: exitTime,
             plate: vehicleData.plateCode,
