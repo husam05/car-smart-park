@@ -371,14 +371,17 @@ export function useParkingSystem() {
         return () => clearInterval(interval);
     }, [autoSimulate, handleEntry, handleExit]);
 
-    // Auto-confirm entry receipts in simulation mode
+    // Auto-confirm entry receipts in simulation mode - DISABLED
+    // Cars must be manually confirmed by clicking "Print and Open Gate"
+    // This ensures proper workflow: detect -> show receipt -> print -> open gate -> enter
     useEffect(() => {
-        if (autoSimulate && lastReceipt?.type === 'ENTRY') {
-            const timer = setTimeout(() => {
-                finalizeEntry(true);
-            }, 5000); // Increased to 5 seconds to allow users to see the receipt
-            return () => clearTimeout(timer);
-        }
+        // Disabled auto-confirmation to require manual print
+        // if (autoSimulate && lastReceipt?.type === 'ENTRY') {
+        //     const timer = setTimeout(() => {
+        //         finalizeEntry(true);
+        //     }, 5000);
+        //     return () => clearTimeout(timer);
+        // }
     }, [autoSimulate, lastReceipt, finalizeEntry]);
 
     return {
