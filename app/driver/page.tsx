@@ -94,7 +94,7 @@ function DriverAppContent() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-200 p-4 font-sans" dir="rtl">
+        <div className="min-h-screen bg-slate-950 text-slate-200 p-4" dir="rtl" style={{ fontFamily: 'system-ui, -apple-system, "Segoe UI", Arial, sans-serif' }}>
             <header className="flex justify-between items-center mb-8 pt-4">
                 <div className="flex items-center gap-2">
                     <div className="bg-blue-600 p-2 rounded-lg">
@@ -102,7 +102,7 @@ function DriverAppContent() {
                     </div>
                     <div className="flex flex-col">
                         <h1 className="text-xl font-bold">خدمات السائقين</h1>
-                        {ticketId && <span className="text-[10px] text-slate-400 font-mono">ID: {ticketId}</span>}
+                        {ticketId && <span className="text-[10px] text-slate-400 font-mono">{ticketId}</span>}
                     </div>
                 </div>
                 <Link href="/" className="text-sm text-slate-400 hover:text-white">
@@ -125,9 +125,12 @@ function DriverAppContent() {
                                 type="text"
                                 value={plate}
                                 onChange={(e) => setPlate(e.target.value)}
-                                placeholder="أدخل رقم اللوحة..."
-                                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-lg focus:outline-none focus:border-blue-500 transition-colors text-center font-mono tracking-widest"
+                                placeholder="مثال: كربلاء | ن | 30817"
+                                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-lg focus:outline-none focus:border-blue-500 transition-colors text-center tracking-wide"
+                                style={{ fontFamily: 'system-ui, -apple-system, "Segoe UI", Arial, sans-serif' }}
+                                dir="rtl"
                             />
+                            <p className="text-xs text-slate-500 mt-1 text-center">أدخل رقم اللوحة كما هو مكتوب</p>
                         </div>
                         <button
                             type="submit"
@@ -147,6 +150,14 @@ function DriverAppContent() {
                     )}>
                         {searchResult.found ? (
                             <div className="space-y-4">
+                                {/* License Plate Display */}
+                                <div className="bg-slate-950/50 p-4 rounded-xl border border-white/5 text-center">
+                                    <div className="text-xs text-slate-400 mb-2">رقم اللوحة</div>
+                                    <div className="text-2xl font-bold text-white tracking-wide" style={{ fontFamily: 'system-ui, -apple-system, "Segoe UI", Arial, sans-serif' }} dir="rtl">
+                                        {plate}
+                                    </div>
+                                </div>
+
                                 <div className="flex items-center justify-between border-b border-white/5 pb-4">
                                     <span className="text-slate-400">حالة التذكرة</span>
                                     <span className="text-green-400 font-bold flex items-center gap-1">
