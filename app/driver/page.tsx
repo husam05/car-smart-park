@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { LogEntry, ParkingSpot } from '@/types';
 import { Search, MapPin, Car, Clock, CreditCard, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import Link from 'next/link';
+
 import { useParking } from '@/context/ParkingContext';
 
 interface SearchResult {
@@ -105,9 +105,7 @@ function DriverAppContent() {
                         {ticketId && <span className="text-[10px] text-slate-400 font-mono">{ticketId}</span>}
                     </div>
                 </div>
-                <Link href="/" className="text-sm text-slate-400 hover:text-white">
-                    لوحة التحكم
-                </Link>
+
             </header>
 
             <main className="max-w-md mx-auto space-y-6">
