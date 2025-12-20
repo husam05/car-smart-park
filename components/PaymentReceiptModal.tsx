@@ -29,7 +29,7 @@ export default function PaymentReceiptModal({ isOpen, onClose, onPrint, vehicleD
 
     if (!isOpen || !vehicleDetails) return null;
 
-    const driverUrl = `${origin}/driver?ticket=${vehicleDetails.ticketId}&plate=${vehicleDetails.plate}`;
+    const driverUrl = `${origin}/driver?ticket=${encodeURIComponent(vehicleDetails.ticketId)}&plate=${encodeURIComponent(vehicleDetails.plate)}`;
 
     return (
         <AnimatePresence>

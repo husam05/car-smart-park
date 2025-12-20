@@ -106,6 +106,9 @@ export function useParkingSystem() {
 
     // LOCAL MODE: Handle Entry
     const handleEntryLocal = useCallback(async (plate: string, city: string) => {
+        // Prevent infinite loop from CameraFeed callback
+        if (incomingCar?.plate === plate) return;
+
         if (spots.some(s => s.vehicle?.plateCode === plate)) {
             return;
         }
@@ -129,7 +132,7 @@ export function useParkingSystem() {
             city: city,
             entryTime: new Date()
         });
-    }, [spots, lastReceipt]);
+    }, [spots, lastReceipt, incomingCar]);
 
     // LOCAL MODE: Finalize Entry
     const finalizeEntryLocal = useCallback(async (confirmed: boolean = true) => {
@@ -252,6 +255,9 @@ export function useParkingSystem() {
 
     // FIREBASE MODE: Handlers (imported dynamically)
     const handleEntryFirebase = useCallback(async (plate: string, city: string) => {
+        // Prevent infinite loop from CameraFeed callback
+        if (incomingCar?.plate === plate) return;
+
         if (spots.some(s => s.vehicle?.plateCode === plate)) {
             return;
         }
@@ -277,7 +283,7 @@ export function useParkingSystem() {
             city: city,
             entryTime: new Date()
         });
-    }, [spots, lastReceipt]);
+    }, [spots, lastReceipt, incomingCar]);
 
     const finalizeEntryFirebase = useCallback(async (confirmed: boolean = true) => {
         console.log('🔔 [FINALIZE ENTRY FIREBASE] Confirmed:', confirmed);
@@ -392,13 +398,9 @@ export function useParkingSystem() {
         let interval: NodeJS.Timeout;
         if (autoSimulate) {
             // Trigger first car immediately for instant feedback
-            const randomAction = Math.random();
-            if (randomAction > 0.45) {
-                const { code, city } = generateLicensePlate();
-                handleEntryRef.current(code, city);
-            } else {
-                handleExitRef.current();
-            }
+            // ALWAYS force entry on start so user sees action immediately
+            const { code, city } = generateLicensePlate();
+            handleEntryRef.current(code, city);
 
             // Then continue with 15-second intervals
             interval = setInterval(() => {
