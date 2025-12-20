@@ -110,6 +110,12 @@ export function useParkingSystem() {
             return;
         }
 
+        // Auto-cancel any pending receipt from previous car
+        if (lastReceipt?.type === 'ENTRY') {
+            console.log('🔄 [AUTO-CANCEL] Previous entry cancelled - new car arriving');
+            setLastReceipt(null);
+        }
+
         setIncomingCar({ plate, city });
         await new Promise(r => setTimeout(r, 1000));
 
@@ -123,7 +129,7 @@ export function useParkingSystem() {
             city: city,
             entryTime: new Date()
         });
-    }, [spots]);
+    }, [spots, lastReceipt]);
 
     // LOCAL MODE: Finalize Entry
     const finalizeEntryLocal = useCallback(async (confirmed: boolean = true) => {
@@ -250,6 +256,12 @@ export function useParkingSystem() {
             return;
         }
 
+        // Auto-cancel any pending receipt from previous car
+        if (lastReceipt?.type === 'ENTRY') {
+            console.log('🔄 [AUTO-CANCEL] Previous entry cancelled - new car arriving');
+            setLastReceipt(null);
+        }
+
         console.log('🚗 [ENTRY START] Plate:', plate, 'City:', city);
         setIncomingCar({ plate, city });
         await new Promise(r => setTimeout(r, 1000));
@@ -265,7 +277,7 @@ export function useParkingSystem() {
             city: city,
             entryTime: new Date()
         });
-    }, [spots]);
+    }, [spots, lastReceipt]);
 
     const finalizeEntryFirebase = useCallback(async (confirmed: boolean = true) => {
         console.log('🔔 [FINALIZE ENTRY FIREBASE] Confirmed:', confirmed);
@@ -378,7 +390,7 @@ export function useParkingSystem() {
                 } else {
                     handleExit();
                 }
-            }, 5000); // 5 second intervals for faster simulation
+            }, 15000); // 15 second intervals - gives time to manually print and control gate
         }
         return () => clearInterval(interval);
     }, [autoSimulate, handleEntry, handleExit]);
