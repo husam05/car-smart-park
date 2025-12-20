@@ -378,6 +378,15 @@ export function useParkingSystem() {
     const finalizeEntry = isLocalMode ? finalizeEntryLocal : finalizeEntryFirebase;
     const handleExit = isLocalMode ? handleExitLocal : handleExitFirebase;
 
+    // Use refs to avoid recreating interval when handlers change
+    const handleEntryRef = useRef(handleEntry);
+    const handleExitRef = useRef(handleExit);
+
+    useEffect(() => {
+        handleEntryRef.current = handleEntry;
+        handleExitRef.current = handleExit;
+    }, [handleEntry, handleExit]);
+
     // Auto Simulation Logic
     useEffect(() => {
         let interval: NodeJS.Timeout;
@@ -386,14 +395,14 @@ export function useParkingSystem() {
                 const randomAction = Math.random();
                 if (randomAction > 0.45) {
                     const { code, city } = generateLicensePlate();
-                    handleEntry(code, city);
+                    handleEntryRef.current(code, city);
                 } else {
-                    handleExit();
+                    handleExitRef.current();
                 }
             }, 15000); // 15 second intervals - gives time to manually print and control gate
         }
         return () => clearInterval(interval);
-    }, [autoSimulate, handleEntry, handleExit]);
+    }, [autoSimulate]); // Only restart interval when autoSimulate changes
 
     // Auto-confirm entry receipts in simulation mode - DISABLED
     // Cars must be manually confirmed by clicking "Print and Open Gate"
