@@ -127,13 +127,18 @@ export function useParkingSystem() {
 
     // LOCAL MODE: Finalize Entry
     const finalizeEntryLocal = useCallback(async (confirmed: boolean = true) => {
+        console.log('🔔 [FINALIZE ENTRY LOCAL] Confirmed:', confirmed);
         if (!confirmed) {
+            console.log('❌ [ENTRY CANCELLED]');
             setIncomingCar(null);
             setLastReceipt(null);
             return;
         }
 
-        if (!lastReceipt || lastReceipt.type !== 'ENTRY') return;
+        if (!lastReceipt || lastReceipt.type !== 'ENTRY') {
+            console.log('⚠️ [NO RECEIPT] Cannot finalize');
+            return;
+        }
 
         const { plate, city } = lastReceipt;
 
@@ -245,11 +250,13 @@ export function useParkingSystem() {
             return;
         }
 
+        console.log('🚗 [ENTRY START] Plate:', plate, 'City:', city);
         setIncomingCar({ plate, city });
         await new Promise(r => setTimeout(r, 1000));
 
         // Generate a stable ticket ID using timestamp + random string
         const ticketId = `TKT-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
+        console.log('📋 [TICKET GENERATED]', ticketId);
 
         setLastReceipt({
             type: 'ENTRY',
@@ -261,13 +268,18 @@ export function useParkingSystem() {
     }, [spots]);
 
     const finalizeEntryFirebase = useCallback(async (confirmed: boolean = true) => {
+        console.log('🔔 [FINALIZE ENTRY FIREBASE] Confirmed:', confirmed);
         if (!confirmed) {
+            console.log('❌ [ENTRY CANCELLED]');
             setIncomingCar(null);
             setLastReceipt(null);
             return;
         }
 
-        if (!lastReceipt || lastReceipt.type !== 'ENTRY') return;
+        if (!lastReceipt || lastReceipt.type !== 'ENTRY') {
+            console.log('⚠️ [NO RECEIPT] Cannot finalize');
+            return;
+        }
 
         const { plate, city } = lastReceipt;
         const freeSpot = spots.find(s => s.status === 'free');
