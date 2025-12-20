@@ -375,6 +375,13 @@ export function useParkingSystem() {
     // Cars must be manually confirmed by clicking "Print and Open Gate"
     // This ensures proper workflow: detect -> show receipt -> print -> open gate -> enter
     useEffect(() => {
+        // Log to console to prove this is disabled
+        if (autoSimulate && lastReceipt?.type === 'ENTRY') {
+            console.log('🚗 CAR WAITING AT GATE - Manual print required!');
+            console.log('📋 Receipt ID:', lastReceipt.id);
+            console.log('🚫 AUTO-ENTRY IS DISABLED - Click "طباعة وفتح البوابة" to proceed');
+        }
+
         // Disabled auto-confirmation to require manual print
         // if (autoSimulate && lastReceipt?.type === 'ENTRY') {
         //     const timer = setTimeout(() => {
