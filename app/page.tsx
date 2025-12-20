@@ -49,6 +49,7 @@ export default function Dashboard() {
             <h1 className="text-3xl font-black tracking-tight text-white flex items-center gap-2">
               نظام <span className="text-blue-500">المواقف</span> الذكي
             </h1>
+            <p className="text-xs text-slate-500 font-mono">v2024.12.20-DEBUG | Build: {Date.now()}</p>
             <p className="text-xs text-slate-400 font-mono tracking-widest uppercase">نظام إدارة المواقف بالذكاء الاصطناعي</p>
           </div>
         </div>
