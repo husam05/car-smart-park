@@ -391,6 +391,16 @@ export function useParkingSystem() {
     useEffect(() => {
         let interval: NodeJS.Timeout;
         if (autoSimulate) {
+            // Trigger first car immediately for instant feedback
+            const randomAction = Math.random();
+            if (randomAction > 0.45) {
+                const { code, city } = generateLicensePlate();
+                handleEntryRef.current(code, city);
+            } else {
+                handleExitRef.current();
+            }
+
+            // Then continue with 15-second intervals
             interval = setInterval(() => {
                 const randomAction = Math.random();
                 if (randomAction > 0.45) {
