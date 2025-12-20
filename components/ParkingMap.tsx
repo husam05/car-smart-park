@@ -10,13 +10,14 @@ import React from 'react';
 
 
 // Update SpotItem to use layoutId for the car
-const SpotItem = React.memo(({ spot, onClick }: { spot: ParkingSpot, onClick: (s: ParkingSpot) => void }) => {
+const SpotItem = React.memo(({ spot, onClick, onDoubleClick }: { spot: ParkingSpot, onClick: (s: ParkingSpot) => void, onDoubleClick?: (s: ParkingSpot) => void }) => {
     return (
         <motion.button
             layout
             initial={{ scale: 0.9 }}
             animate={{ scale: 1 }}
             onClick={() => onClick(spot)}
+            onDoubleClick={() => onDoubleClick?.(spot)}
             className={cn(
                 "relative aspect-[3/4] rounded-lg border flex flex-col items-center justify-center p-1 transition-colors",
                 spot.status === 'free'
@@ -53,9 +54,10 @@ interface ParkingMapProps {
     spots: ParkingSpot[];
     floor: 1 | 2;
     onSpotClick: (spot: ParkingSpot) => void;
+    onSpotDoubleClick?: (spot: ParkingSpot) => void;
 }
 
-export default function ParkingMap({ spots, floor, onSpotClick }: ParkingMapProps) {
+export default function ParkingMap({ spots, floor, onSpotClick, onSpotDoubleClick }: ParkingMapProps) {
     const floorSpots = spots.filter(s => s.floor === floor);
 
     return (
@@ -66,7 +68,12 @@ export default function ParkingMap({ spots, floor, onSpotClick }: ParkingMapProp
                 <div className="grid grid-cols-5 md:grid-cols-8 lg:grid-cols-10 gap-3">
                     <AnimatePresence>
                         {floorSpots.map((spot) => (
-                            <SpotItem key={spot.id} spot={spot} onClick={onSpotClick} />
+                            <SpotItem
+                                key={spot.id}
+                                spot={spot}
+                                onClick={onSpotClick}
+                                onDoubleClick={onSpotDoubleClick}
+                            />
                         ))}
                     </AnimatePresence>
                 </div>

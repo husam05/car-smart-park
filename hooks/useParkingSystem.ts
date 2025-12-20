@@ -201,8 +201,14 @@ export function useParkingSystem() {
         if (plate) {
             targetSpot = spots.find(s => s.status === 'occupied' && s.vehicle?.plateCode === plate);
         } else {
-            // Random exit logic
-            const occupiedSpots = spots.filter(s => s.status === 'occupied');
+            // Random exit logic - Ensure cars stay for at least 3 minutes
+            const now = Date.now();
+            const occupiedSpots = spots.filter(s => {
+                if (s.status !== 'occupied' || !s.vehicle) return false;
+                const entryTime = new Date(s.vehicle.entryTime).getTime();
+                return (now - entryTime) > 3 * 60 * 1000; // 3 minutes minimum stay
+            });
+
             if (occupiedSpots.length > 0) {
                 targetSpot = occupiedSpots[Math.floor(Math.random() * occupiedSpots.length)];
             }
@@ -342,7 +348,14 @@ export function useParkingSystem() {
         if (plate) {
             targetSpot = spots.find(s => s.status === 'occupied' && s.vehicle?.plateCode === plate);
         } else {
-            const occupiedSpots = spots.filter(s => s.status === 'occupied');
+            // Ensure cars stay for at least 3 minutes
+            const now = Date.now();
+            const occupiedSpots = spots.filter(s => {
+                if (s.status !== 'occupied' || !s.vehicle) return false;
+                const entryTime = new Date(s.vehicle.entryTime).getTime();
+                return (now - entryTime) > 3 * 60 * 1000;
+            });
+
             if (occupiedSpots.length > 0) {
                 targetSpot = occupiedSpots[Math.floor(Math.random() * occupiedSpots.length)];
             }

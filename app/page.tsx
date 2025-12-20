@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { ParkingSpot } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
 import StatsCard from '@/components/StatsCard';
 import ParkingMap from '@/components/ParkingMap';
@@ -10,6 +11,7 @@ import LogList from '@/components/LogList';
 import ControlPanel from '@/components/ControlPanel';
 import FinancialReport from '@/components/FinancialReport';
 import PaymentReceiptModal from '@/components/PaymentReceiptModal';
+import VehicleDetailsModal from '@/components/VehicleDetailsModal';
 import { useParkingSystem } from '@/hooks/useParkingSystem';
 import { Car, Activity, Users, Play, Square, ArrowLeftRight, FileText, Printer } from 'lucide-react';
 
@@ -33,6 +35,7 @@ export default function Dashboard() {
   } = useParkingSystem();
 
   const [showReport, setShowReport] = useState(false);
+  const [selectedVehicleSpot, setSelectedVehicleSpot] = useState<ParkingSpot | null>(null);
 
   if (!mounted) return null;
 
@@ -49,7 +52,7 @@ export default function Dashboard() {
             <h1 className="text-3xl font-black tracking-tight text-white flex items-center gap-2">
               نظام <span className="text-blue-500">المواقف</span> الذكي
             </h1>
-            <p className="text-xs text-slate-500 font-mono">v2024.12.20-SMART-LOGS | Build: {Date.now()}</p>
+            <p className="text-xs text-slate-500 font-mono">v2024.12.20-FEATURE-PACK | Build: {Date.now()}</p>
             <p className="text-xs text-slate-400 font-mono tracking-widest uppercase">نظام إدارة المواقف بالذكاء الاصطناعي</p>
           </div>
         </div>
@@ -269,6 +272,11 @@ export default function Dashboard() {
                     }
                   }
                 }}
+                onSpotDoubleClick={(spot) => {
+                  if (spot.status === 'occupied' && spot.vehicle) {
+                    setSelectedVehicleSpot(spot);
+                  }
+                }}
               />
             </div>
           </div>
@@ -340,6 +348,16 @@ export default function Dashboard() {
           spotId: lastReceipt.spotId,
           ticketId: lastReceipt.id
         } : null}
+      />
+
+      {/* Vehicle Details Modal (Double Click) */}
+      <VehicleDetailsModal
+        spot={selectedVehicleSpot}
+        onClose={() => setSelectedVehicleSpot(null)}
+        onForceExit={(plate) => {
+          handleExit(plate);
+          setSelectedVehicleSpot(null);
+        }}
       />
     </main >
   );
