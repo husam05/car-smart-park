@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import { ArrowLeft, Activity, Server } from 'lucide-react';
 import SystemMonitor from '@/components/SystemMonitor';
