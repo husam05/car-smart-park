@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, ChevronLeft, Cpu, Database, Cloud, Wifi, Camera, Shield, Zap, TrendingUp, Users, Play, Maximize, Smartphone, Car, CheckCircle, Server, Monitor, Printer, BarChart3, Activity, Terminal, Layers, Clock, DollarSign, MapPin, Lock, Globe, Briefcase } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Cpu, Database, Cloud, Wifi, Camera, Shield, Zap, TrendingUp, Users, Play, Maximize, Smartphone, Car, CheckCircle, Server, Monitor, Printer, BarChart3, Activity, Terminal, Layers, Clock, DollarSign, MapPin, Lock, Globe, Briefcase, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
@@ -161,7 +161,7 @@ const SLIDES = [
             <div className="grid grid-cols-2 gap-8 text-right">
                 <div className="flex flex-col gap-4">
                     <div className="flex items-center gap-4 bg-blue-900/30 p-4 rounded-xl"><Zap /><span className="text-white font-bold">أتمتة كاملة 100%</span></div>
-                    <div className="flex items-center gap-4 bg-blue-900/30 p-4 rounded-xl"><EyeIcon /><span className="text-white font-bold">رؤية حاسوبية ذكية</span></div>
+                    <div className="flex items-center gap-4 bg-blue-900/30 p-4 rounded-xl"><Eye /><span className="text-white font-bold">رؤية حاسوبية ذكية</span></div>
                     <div className="flex items-center gap-4 bg-blue-900/30 p-4 rounded-xl"><Cloud /><span className="text-white font-bold">ربط سحابي فوري</span></div>
                 </div>
                 <div className="border border-blue-500/30 rounded-xl p-4 flex items-center justify-center">
@@ -217,7 +217,7 @@ const SLIDES = [
                     <div className="p-6 bg-green-900/30 border border-green-500 rounded-2xl text-center">
                         <Cpu size={48} className="text-green-400 mx-auto mb-2" />
                         <h3 className="text-white font-bold">Jetson Orin / RPi 5</h3>
-                        <span className="text-green-300 text-sm">AI Inference (< 50ms)</span>
+                        <span className="text-green-300 text-sm">AI Inference (&lt; 50ms)</span>
                     </div>
                 </div>
             </div>
@@ -360,7 +360,7 @@ const SLIDES = [
                 <p className="text-green-400 font-mono mb-4 text-sm animate-pulse">● SYSTEM LIVE</p>
                 <div className="grid grid-cols-2 gap-4">
                     <div className="bg-black border border-green-500 p-4 rounded text-green-500 font-mono text-xs text-left">
-                        > GATE_01: OPEN<br />> CAM_02: RECORDING<br />> SERVER: ONLINE
+                        &gt; GATE_01: OPEN<br />&gt; CAM_02: RECORDING<br />&gt; SERVER: ONLINE
                     </div>
                     <div className="flex flex-col gap-2">
                         <div className="bg-slate-800 p-2 rounded text-white text-xs">CPU Usage: 12%</div>
@@ -522,9 +522,7 @@ const SLIDES = [
 
 // --- MAIN PAGE COMPONENT ---
 
-const EyeIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-eye"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>
-);
+
 
 export default function PresentationPage() {
     const [currentSlide, setCurrentSlide] = useState(0);
