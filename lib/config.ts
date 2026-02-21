@@ -16,6 +16,11 @@ export const PARKING_CONFIG = {
     MIN_STAY_MINUTES: 3,
     SIMULATION_INTERVAL_MS: 15000,
     OUTGOING_CAR_DISPLAY_MS: 3000,
+
+    // AI Detection
+    AI_DETECTION_INTERVAL_MS: 2000,
+    AI_AUTO_ACCEPT_CONFIDENCE: 0.75,
+    AI_MIN_CONFIDENCE: 0.40,
 } as const;
 
 // Calculate parking cost based on duration
