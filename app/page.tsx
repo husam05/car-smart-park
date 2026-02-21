@@ -12,7 +12,8 @@ import ControlPanel from '@/components/ControlPanel';
 import FinancialReport from '@/components/FinancialReport';
 import PaymentReceiptModal from '@/components/PaymentReceiptModal';
 import VehicleDetailsModal from '@/components/VehicleDetailsModal';
-import { useParkingSystem } from '@/hooks/useParkingSystem';
+import { useParking } from '@/context/ParkingContext';
+import { PARKING_CONFIG } from '@/lib/config';
 import { Car, Activity, Users, Play, Square, ArrowLeftRight, FileText, Printer } from 'lucide-react';
 
 export default function Dashboard() {
@@ -32,7 +33,7 @@ export default function Dashboard() {
     handleExit,
     finalizeEntry,
     gateControlRef
-  } = useParkingSystem();
+  } = useParking();
 
   const [showReport, setShowReport] = useState(false);
   const [selectedVehicleSpot, setSelectedVehicleSpot] = useState<ParkingSpot | null>(null);
@@ -61,7 +62,7 @@ export default function Dashboard() {
           <div className="hidden md:flex items-center gap-8 bg-slate-800/50 px-6 py-2 rounded-full border border-white/5">
             <div className="flex flex-col items-center">
               <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">الإشغال</span>
-              <span className="text-2xl font-black text-white leading-none">{stats.occupiedCount}<span className="text-sm text-slate-500 font-normal">/100</span></span>
+              <span className="text-2xl font-black text-white leading-none">{stats.occupiedCount}<span className="text-sm text-slate-500 font-normal">/{PARKING_CONFIG.TOTAL_SPOTS}</span></span>
             </div>
             <div className="w-px h-8 bg-white/10"></div>
             <div className="flex flex-col items-center">
@@ -126,8 +127,8 @@ export default function Dashboard() {
         <div className="space-y-6 flex flex-col h-full">
           {/* Stats Row */}
           <div className="grid grid-cols-4 gap-4">
-            <StatsCard title="مواقف متاحة" value={100 - stats.occupiedCount} icon={Square} color="blue" />
-            <StatsCard title="مستخدمين حاليين" value={12} icon={Users} color="purple" />
+            <StatsCard title="مواقف متاحة" value={PARKING_CONFIG.TOTAL_SPOTS - stats.occupiedCount} icon={Square} color="blue" />
+            <StatsCard title="مستخدمين حاليين" value={stats.occupiedCount} icon={Users} color="purple" />
             <StatsCard title="مغادرات اليوم" value={stats.todaysExits} icon={ArrowLeftRight} color="orange" />
             <StatsCard title="حالة النظام" value="متصل" icon={Activity} color="green" />
           </div>
@@ -175,10 +176,7 @@ export default function Dashboard() {
                   {/* Entry Confirmation Button - Shows when waiting */}
                   {lastReceipt?.type === 'ENTRY' && (
                     <button
-                      onClick={() => {
-                        finalizeEntry();
-                        gateControlRef.current?.openEntryGate();
-                      }}
+                      onClick={() => finalizeEntry()}
                       className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white text-sm font-bold rounded-lg flex items-center gap-2 shadow-lg animate-pulse hover:animate-none transition-all"
                     >
                       <Printer size={16} />
@@ -322,29 +320,26 @@ export default function Dashboard() {
           finalizeEntry(false);
         }}
         onPrint={() => {
-          // Confirm print and open gate
-          finalizeEntry(true);
-          gateControlRef.current?.openEntryGate();
+          if (!lastReceipt) return;
+          const receiptInfo = {
+            plate: lastReceipt.plate,
+            entryTime: lastReceipt.entryTime,
+            amount: PARKING_CONFIG.ENTRY_FEE,
+            ticketId: lastReceipt.id
+          };
+          const qrEl = document.querySelector('#receipt-preview svg');
+          const qrSvg = qrEl ? qrEl.outerHTML : '';
 
-          // Trigger browser print for the receipt part
-          setTimeout(() => {
-            const printContent = document.getElementById('receipt-preview');
-            if (printContent) {
-              const win = window.open('', '', 'height=600,width=400');
-              win?.document.write('<html><head><title>Receipt</title>');
-              win?.document.write('<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">');
-              win?.document.write('</head><body class="p-4">');
-              win?.document.write(printContent.innerHTML);
-              win?.document.write('</body></html>');
-              win?.document.close();
-              win?.print();
-            }
-          }, 500);
+          finalizeEntry(true);
+
+          import('@/lib/print-utils').then(({ printEntryReceipt }) => {
+            printEntryReceipt({ ...receiptInfo, qrSvg });
+          });
         }}
         vehicleDetails={lastReceipt ? {
           plate: lastReceipt.plate,
           entryTime: lastReceipt.entryTime,
-          amount: 5000, // Standard Entry Fee
+          amount: PARKING_CONFIG.ENTRY_FEE,
           spotId: lastReceipt.spotId,
           ticketId: lastReceipt.id
         } : null}

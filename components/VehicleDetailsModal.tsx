@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { ParkingSpot } from '@/types';
-import { X, Car, Clock, MapPin, BadgeCheck, PlayCircle, DollarSign } from 'lucide-react';
+import { X, Car, Clock, BadgeCheck, PlayCircle, DollarSign } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCurrency } from '@/lib/utils';
+import { calculateParkingCost } from '@/lib/config';
 
 interface VehicleDetailsModalProps {
     spot: ParkingSpot | null;
@@ -29,11 +30,7 @@ export default function VehicleDetailsModal({ spot, onClose, onForceExit }: Vehi
             const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
             setDuration(`${hours}h ${minutes}m ${seconds}s`);
 
-            // Calculate Cost (Same logic as system)
-            // 5000 first hour (entry fee), +2000 per extra hour? 
-            // Simplified logic matching exit handler: Max(2000, hours * 2000)
-            const durationHours = diffMs / (1000 * 60 * 60);
-            const calculated = Math.max(5000, Math.ceil(durationHours) * 2000); // Assuming 5000 min
+            const calculated = calculateParkingCost(entryTime, now);
             setCost(calculated);
         };
 

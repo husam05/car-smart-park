@@ -1,5 +1,5 @@
 import React from 'react';
-import { Server, Monitor, Database, Cpu, Camera, Shield, Cable, Radio, Zap } from 'lucide-react';
+import { Server, Monitor, Database, Cpu, Camera, Shield, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function ArchitectureView() {

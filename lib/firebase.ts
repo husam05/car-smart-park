@@ -10,6 +10,14 @@ const firebaseConfig = {
     appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
+// Validate required Firebase config
+if (typeof window !== 'undefined' && (!firebaseConfig.apiKey || !firebaseConfig.projectId)) {
+    console.warn(
+        'Firebase config is incomplete (missing API key or project ID). ' +
+        'The app will run in local simulation mode.'
+    );
+}
+
 // Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const db = getFirestore(app);

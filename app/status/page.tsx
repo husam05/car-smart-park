@@ -4,10 +4,10 @@ import Link from 'next/link';
 import { ArrowLeft, Activity, Server } from 'lucide-react';
 import SystemMonitor from '@/components/SystemMonitor';
 import ArchitectureView from '@/components/ArchitectureView';
-import { useParkingSystem } from '@/hooks/useParkingSystem';
+import { useParking } from '@/context/ParkingContext';
 
 export default function SystemStatusPage() {
-    const { logs, stats } = useParkingSystem();
+    const { logs, stats } = useParking();
 
     return (
         <main className="min-h-screen bg-slate-950 text-slate-200 p-4 font-sans selection:bg-blue-500/30 overflow-x-hidden flex flex-col gap-6" dir="rtl">

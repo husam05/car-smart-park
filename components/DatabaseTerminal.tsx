@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
-import { Terminal, Database, Check, X, ShieldAlert } from 'lucide-react';
+import { Terminal, Database, Check, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface DbLog {

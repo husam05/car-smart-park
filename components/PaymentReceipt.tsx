@@ -1,6 +1,7 @@
 import React from 'react';
-import { Car, QrCode, Printer, CheckCircle } from 'lucide-react';
+import { Car, QrCode, Printer } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
+import { PARKING_CONFIG } from '@/lib/config';
 
 interface ReceiptProps {
     type?: 'ENTRY' | 'EXIT';
@@ -30,8 +31,9 @@ export default function PaymentReceipt({ data, type = 'EXIT', onClose, onPrint }
                         <Car size={24} className="text-black" />
                     </div>
                 </div>
-                <h2 className="font-bold text-xl uppercase tracking-wider">نظام المواقف الذكي</h2>
-                <p className="text-xs text-gray-500">بغداد المركز، البوابة ١</p>
+                <h2 className="font-bold text-lg">نظام إدارة المواقف الذكي</h2>
+                <p className="text-xs font-bold tracking-[3px] text-gray-600 uppercase">SMART PARK</p>
+                <p className="text-[10px] text-gray-400 mt-0.5">بغداد - البوابة الرئيسية</p>
                 <div className="my-2 border-b border-dashed border-gray-300"></div>
                 <h3 className="font-bold text-lg">{type === 'ENTRY' ? 'تذكرة دخول' : 'إيصال دفع'}</h3>
             </div>
@@ -83,8 +85,8 @@ export default function PaymentReceipt({ data, type = 'EXIT', onClose, onPrint }
 
             {type === 'ENTRY' && (
                 <div className="bg-gray-100 p-2 text-center text-xs mb-6 rounded border border-gray-200">
-                    <p>التعرفة: {formatCurrency(2000)} / ساعة</p>
-                    <p className="text-gray-500">رسوم التذكرة المفقودة: {formatCurrency(50000)}</p>
+                    <p>التعرفة: {formatCurrency(PARKING_CONFIG.HOURLY_RATE)} / ساعة</p>
+                    <p className="text-gray-500">رسوم التذكرة المفقودة: {formatCurrency(PARKING_CONFIG.LOST_TICKET_FEE)}</p>
                 </div>
             )}
 

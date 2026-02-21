@@ -2,11 +2,11 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { LogEntry, ParkingSpot } from '@/types';
 import { Search, MapPin, Car, Clock, CreditCard, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 import { useParking } from '@/context/ParkingContext';
+import { calculateParkingCost, PARKING_CONFIG } from '@/lib/config';
 
 interface SearchResult {
     found: boolean;
@@ -73,15 +73,14 @@ function DriverAppContent() {
             const now = new Date();
 
             // Simple cost calc just for display (or use default fee)
-            const durationHours = (now.getTime() - entryTime.getTime()) / (1000 * 60 * 60);
-            const currentCost = Math.max(5000, Math.ceil(durationHours) * 2000);
+            const currentCost = calculateParkingCost(entryTime, now);
 
             setSearchResult({
                 found: true,
                 floor: currentSpot.floor,
                 spot: currentSpot.id,
                 entryTime: entryTime,
-                cost: isPaid ? 5000 : currentCost, // Show entry fee if paid, or running cost
+                cost: isPaid ? PARKING_CONFIG.ENTRY_FEE : currentCost,
                 paid: isPaid
             });
         } else {

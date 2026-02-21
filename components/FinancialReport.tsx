@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
-import { FileText, Download, Printer, Filter, DollarSign, Calendar, Car, TrendingUp, Clock, AlertCircle } from 'lucide-react';
+import { FileText, Printer, Filter, DollarSign, Car, TrendingUp, Clock, AlertCircle } from 'lucide-react';
 import { LogEntry } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
+import { PARKING_CONFIG } from '@/lib/config';
 
 
 interface FinancialReportProps {
@@ -37,12 +38,12 @@ export default function FinancialReport({ logs, stats, onClose }: FinancialRepor
         });
 
         // Current Efficiency
-        const totalSpots = 100; // Hardcoded capacity
+        const totalSpots = PARKING_CONFIG.TOTAL_SPOTS;
         const occupancyRate = (stats.occupiedCount / totalSpots) * 100;
 
         // Revenue Efficiency (Revenue per occupied spot vs Potential)
         // Potential = 100 spots * 2000 IQD/hr
-        const currentHourlyRunRate = stats.occupiedCount * 2000;
+        const currentHourlyRunRate = stats.occupiedCount * PARKING_CONFIG.HOURLY_RATE;
 
         return {
             count,
@@ -56,7 +57,7 @@ export default function FinancialReport({ logs, stats, onClose }: FinancialRepor
     // Helper to estimate duration from cost (2000 IQD per hour approx)
     const getEstimatedDuration = (amount: number) => {
         if (!amount) return "0د";
-        const hours = Math.ceil(amount / 2000);
+        const hours = Math.ceil(amount / PARKING_CONFIG.HOURLY_RATE);
         return `${hours}س`;
     };
 
@@ -74,7 +75,24 @@ export default function FinancialReport({ logs, stats, onClose }: FinancialRepor
                         <p className="text-slate-400 text-sm mt-1">تقرير الأداء التشغيلي والإيرادات</p>
                     </div>
                     <div className="flex gap-3">
-                        <button onClick={() => window.print()} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg flex items-center gap-2 border border-white/10 transition-colors">
+                        <button onClick={() => {
+                            import('@/lib/print-utils').then(({ printFinancialReport }) => {
+                                printFinancialReport({
+                                    totalRevenue,
+                                    occupancyRate: analytics.occupancyRate,
+                                    avgTicket: analytics.avgTicket,
+                                    currentHourlyRunRate: analytics.currentHourlyRunRate,
+                                    exitCount: analytics.count,
+                                    occupiedCount: stats.occupiedCount,
+                                    transactions: exitLogs.slice(0, 20).map(log => ({
+                                        plate: log.plate,
+                                        time: log.timestamp.toLocaleTimeString('ar-IQ'),
+                                        amount: log.amount || 0,
+                                        duration: getEstimatedDuration(log.amount || 0)
+                                    }))
+                                });
+                            });
+                        }} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg flex items-center gap-2 border border-white/10 transition-colors">
                             <Printer size={16} /> طباعة
                         </button>
                         <button onClick={onClose} className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg transition-colors">

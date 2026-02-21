@@ -103,3 +103,25 @@ body {
 .scan-line {
   animation: scan 2s linear infinite;
 }
+
+/* Print Styles */
+.print-only {
+  display: none;
+}
+
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  .no-print,
+  header,
+  nav {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+}

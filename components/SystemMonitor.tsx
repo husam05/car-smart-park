@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Activity, Server, Database, Network, Cpu, Wifi, HardDrive, Shield, AlertTriangle, CheckCircle, Terminal, Globe, Zap, Clock } from 'lucide-react';
+import { Activity, Server, Database, Network, Wifi, Shield, Terminal, Globe, Zap, Clock } from 'lucide-react';
 import { cn, formatCurrency } from '@/lib/utils';
 import { LogEntry } from '@/types';
 
@@ -73,7 +73,7 @@ export default function SystemMonitor({ logs, stats }: SystemMonitorProps) {
                     ].map((tab) => (
                         <button
                             key={tab.id}
-                            onClick={() => setActiveTab(tab.id as any)}
+                            onClick={() => setActiveTab(tab.id as typeof activeTab)}
                             className={cn(
                                 "flex-1 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wide transition-all border-l border-white/5 hover:bg-white/5 min-w-[120px]",
                                 activeTab === tab.id ? "bg-blue-600/10 text-blue-400 border-b-2 border-b-blue-500" : "text-slate-400"
@@ -152,7 +152,7 @@ export default function SystemMonitor({ logs, stats }: SystemMonitorProps) {
                                             }
                                             <span className="font-bold text-slate-200 text-sm">{item.name}</span>
                                         </div>
-                                        <StatusBadge status={item.status as any} />
+                                        <StatusBadge status={item.status as 'ok' | 'warn' | 'err'} />
                                     </div>
                                     <div className="flex justify-between items-end border-t border-white/5 pt-3">
                                         <span className="text-[10px] text-slate-500 uppercase flex items-center gap-1">

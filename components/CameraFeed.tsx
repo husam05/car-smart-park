@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Camera, RefreshCw, Zap, Shield, Key } from 'lucide-react';
+import { Camera, Zap, Key } from 'lucide-react';
 import { generateLicensePlate, cn } from '@/lib/utils';
 
 interface CameraFeedProps {

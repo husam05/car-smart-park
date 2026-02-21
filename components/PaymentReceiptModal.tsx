@@ -3,9 +3,10 @@
 import React from 'react';
 import QRCode from 'react-qr-code';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, Printer, X, Receipt, Car, Clock, CreditCard } from 'lucide-react';
+import { Printer, X, Receipt, Car, Clock, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ParkingSpot } from '@/types';
+import { PARKING_CONFIG } from '@/lib/config';
+
 
 interface PaymentReceiptModalProps {
     isOpen: boolean;
@@ -58,14 +59,21 @@ export default function PaymentReceiptModal({ isOpen, onClose, onPrint, vehicleD
                             <div className="absolute bottom-0 left-0 right-0 h-4 bg-[linear-gradient(45deg,transparent_75%,#0f172a_75%),linear-gradient(-45deg,transparent_75%,#0f172a_75%)] bg-[size:20px_20px] opacity-10"></div>
 
                             <div className="text-center border-b-2 border-slate-900/10 pb-4 mb-4 border-dashed">
-                                <h2 className="text-xl font-black uppercase tracking-tighter mb-1">SMART PARK</h2>
-                                <p className="text-[10px] text-slate-500 font-mono">نظام المواقف الذكي - بوابة رقم 1</p>
+                                <h2 className="text-lg font-black mb-0.5">نظام إدارة المواقف الذكي</h2>
+                                <p className="text-xs font-bold tracking-[4px] text-slate-600 uppercase">SMART PARK</p>
+                                <p className="text-[10px] text-slate-400 mt-1">بغداد - البوابة الرئيسية</p>
                             </div>
 
                             <div className="space-y-3 mb-6">
                                 <div className="flex justify-between items-center text-sm">
                                     <span className="text-slate-500 flex items-center gap-1"><Car size={12} /> المركبة</span>
                                     <span className="font-bold font-mono text-lg">{vehicleDetails.plate}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="text-slate-500 flex items-center gap-1"><Calendar size={12} /> التاريخ</span>
+                                    <span className="font-bold font-mono text-xs">
+                                        {vehicleDetails.entryTime.toLocaleDateString('ar-IQ', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                    </span>
                                 </div>
                                 <div className="flex justify-between items-center text-sm">
                                     <span className="text-slate-500 flex items-center gap-1"><Clock size={12} /> وقت الدخول</span>
@@ -84,6 +92,11 @@ export default function PaymentReceiptModal({ isOpen, onClose, onPrint, vehicleD
                                 <div className="border-t border-dashed border-slate-200 pt-3 flex justify-between items-center">
                                     <span className="text-slate-500 font-bold">المبلغ المدفوع</span>
                                     <span className="text-xl font-black text-green-600">{vehicleDetails.amount.toLocaleString()} د.ع</span>
+                                </div>
+                                <div className="text-center text-[10px] text-slate-400 border-t border-dashed border-slate-200 pt-2 mt-2">
+                                    <span>التعرفة: {PARKING_CONFIG.HOURLY_RATE.toLocaleString()} د.ع / ساعة</span>
+                                    <span className="mx-2">|</span>
+                                    <span>رسوم فقدان التذكرة: {PARKING_CONFIG.LOST_TICKET_FEE.toLocaleString()} د.ع</span>
                                 </div>
                             </div>
 

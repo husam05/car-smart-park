@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { ParkingSpot, LogEntry } from '@/types';
 import { generateLicensePlate } from '@/lib/utils';
 import { GateControlRef } from '@/components/ControlPanel';
+import { PARKING_CONFIG, calculateParkingCost } from '@/lib/config';
 
-// Check if Firebase is configured
 const isFirebaseConfigured = () => {
     return !!(
         process.env.NEXT_PUBLIC_FIREBASE_API_KEY &&
@@ -11,11 +11,10 @@ const isFirebaseConfigured = () => {
     );
 };
 
-// Generate initial parking spots
 const generateInitialSpots = (): ParkingSpot[] => {
     const spots: ParkingSpot[] = [];
-    for (let f = 1; f <= 2; f++) {
-        for (let i = 1; i <= 50; i++) {
+    for (let f = 1; f <= PARKING_CONFIG.FLOORS; f++) {
+        for (let i = 1; i <= PARKING_CONFIG.SPOTS_PER_FLOOR; i++) {
             spots.push({
                 id: `${f === 1 ? 'A' : 'B'}-${i.toString().padStart(2, '0')}`,
                 status: 'free',
@@ -32,10 +31,10 @@ export function useParkingSystem() {
     const [logs, setLogs] = useState<LogEntry[]>([]);
     const [activeFloor, setActiveFloor] = useState<1 | 2>(1);
     const [mounted, setMounted] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [autoSimulate, setAutoSimulate] = useState(false);
     const [isLocalMode, setIsLocalMode] = useState(false);
 
-    /* Payment & Reporting State */
     const [lastReceipt, setLastReceipt] = useState<{
         type: 'ENTRY' | 'EXIT';
         id: string;
@@ -49,12 +48,13 @@ export function useParkingSystem() {
         paymentMethod?: 'CASH';
     } | null>(null);
 
-    /* State for Animation */
     const [incomingCar, setIncomingCar] = useState<{ plate: string, city: string } | null>(null);
     const [outgoingCar, setOutgoingCar] = useState<{ plate: string, city: string } | null>(null);
 
-    /* Gate Control Ref */
     const gateControlRef = useRef<GateControlRef>(null);
+    const processingRef = useRef(false);
+    const outgoingTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const unsubscribeRef = useRef<(() => void)[]>([]);
 
     // Statistics
     const parkedCount = spots.filter(s => s.status === 'occupied').length;
@@ -62,99 +62,100 @@ export function useParkingSystem() {
     const totalRevenue = logs.reduce((acc, log) => acc + (log.amount || 0), 0);
     const todaysExits = logs.filter(l => l.type === 'exit').length;
 
-    // Initialize - Check for Firebase or use local mode
+    // Initialize
     useEffect(() => {
         setMounted(true);
-
         const useFirebase = isFirebaseConfigured();
 
         if (!useFirebase) {
-            console.log('🚗 Smart Parking: Running in LOCAL SIMULATION MODE');
             setIsLocalMode(true);
-
-            // Initialize with local spots
-            const initialSpots = generateInitialSpots();
-            setSpots(initialSpots);
+            setSpots(generateInitialSpots());
+            setLoading(false);
         } else {
-            console.log('🚗 Smart Parking: Connecting to Firebase...');
-            // Dynamic import Firebase service only if configured
             import('@/lib/db-service').then(({ ParkingService }) => {
-                // Subscribe to Spots
-                const unsubscribeSpots = ParkingService.subscribeToSpots((newSpots) => {
-                    if (newSpots.length === 0) {
-                        // Initialize grid in Firebase if empty
-                        const initialSpots = generateInitialSpots();
-                        ParkingService.initializeGrid(initialSpots);
-                    } else {
-                        const sorted = newSpots.sort((a, b) => a.id.localeCompare(b.id));
-                        setSpots(sorted);
+                const unsubSpots = ParkingService.subscribeToSpots(
+                    (newSpots) => {
+                        if (newSpots.length === 0) {
+                            const initialSpots = generateInitialSpots();
+                            ParkingService.initializeGrid(initialSpots);
+                        } else {
+                            setSpots(newSpots.sort((a, b) => a.id.localeCompare(b.id)));
+                        }
+                        setLoading(false);
+                    },
+                    (error) => {
+                        console.error('Spots subscription failed, falling back to local:', error);
+                        setIsLocalMode(true);
+                        setSpots(generateInitialSpots());
+                        setLoading(false);
                     }
-                });
+                );
 
-                // Subscribe to Logs
-                const unsubscribeLogs = ParkingService.subscribeToLogs((newLogs) => {
-                    setLogs(newLogs);
-                });
+                const unsubLogs = ParkingService.subscribeToLogs(
+                    (newLogs) => setLogs(newLogs),
+                    (error) => console.error('Logs subscription failed:', error)
+                );
 
-                return () => {
-                    unsubscribeSpots();
-                    unsubscribeLogs();
-                };
+                unsubscribeRef.current = [unsubSpots, unsubLogs];
             });
         }
+
+        return () => {
+            unsubscribeRef.current.forEach(unsub => unsub());
+        };
     }, []);
 
-    // LOCAL MODE: Handle Entry
-    const handleEntryLocal = useCallback(async (plate: string, city: string) => {
-        // Prevent infinite loop from CameraFeed callback
+    // Cleanup outgoing timer on unmount
+    useEffect(() => {
+        return () => {
+            if (outgoingTimerRef.current) {
+                clearTimeout(outgoingTimerRef.current);
+            }
+        };
+    }, []);
+
+    // Unified Entry Handler
+    const handleEntry = useCallback(async (plate: string, city: string) => {
+        if (processingRef.current) return;
         if (incomingCar?.plate === plate) return;
+        if (spots.some(s => s.vehicle?.plateCode === plate)) return;
 
-        if (spots.some(s => s.vehicle?.plateCode === plate)) {
-            return;
-        }
-
-        // Auto-cancel any pending receipt from previous car
         if (lastReceipt?.type === 'ENTRY') {
-            console.log('🔄 [AUTO-CANCEL] Previous entry cancelled - new car arriving');
             setLastReceipt(null);
         }
 
-        setIncomingCar({ plate, city });
-        await new Promise(r => setTimeout(r, 1000));
+        processingRef.current = true;
+        try {
+            setIncomingCar({ plate, city });
+            await new Promise(r => setTimeout(r, 1000));
 
-        // Generate a stable ticket ID using timestamp + random string
-        const ticketId = `TKT-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
+            const ticketId = `TKT-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
 
-        setLastReceipt({
-            type: 'ENTRY',
-            id: ticketId,
-            plate: plate,
-            city: city,
-            entryTime: new Date()
-        });
+            setLastReceipt({
+                type: 'ENTRY',
+                id: ticketId,
+                plate,
+                city,
+                entryTime: new Date()
+            });
+        } finally {
+            processingRef.current = false;
+        }
     }, [spots, lastReceipt, incomingCar]);
 
-    // LOCAL MODE: Finalize Entry
-    const finalizeEntryLocal = useCallback(async (confirmed: boolean = true) => {
-        console.log('🔔 [FINALIZE ENTRY LOCAL] Confirmed:', confirmed);
+    // Unified Finalize Entry
+    const finalizeEntry = useCallback(async (confirmed: boolean = true) => {
         if (!confirmed) {
-            console.log('❌ [ENTRY CANCELLED]');
             setIncomingCar(null);
             setLastReceipt(null);
             return;
         }
 
-        if (!lastReceipt || lastReceipt.type !== 'ENTRY') {
-            console.log('⚠️ [NO RECEIPT] Cannot finalize');
-            return;
-        }
+        if (!lastReceipt || lastReceipt.type !== 'ENTRY') return;
 
         const { plate, city } = lastReceipt;
-
-        // Find first free spot
         const freeSpot = spots.find(s => s.status === 'free');
         if (!freeSpot) {
-            console.log("⚠️ No free spots available!");
             setIncomingCar(null);
             setLastReceipt(null);
             return;
@@ -162,242 +163,124 @@ export function useParkingSystem() {
 
         const entryTime = new Date();
 
-        // Update spot locally
+        // Update local state
         setSpots(prev => prev.map(s =>
             s.id === freeSpot.id
                 ? {
                     ...s,
                     status: 'occupied' as const,
                     lastChanged: entryTime,
-                    vehicle: {
-                        plateCode: plate,
-                        city: city,
-                        entryTime: entryTime
-                    }
+                    vehicle: { plateCode: plate, city, entryTime }
                 }
                 : s
         ));
 
-        // Add log locally
         const newLog: LogEntry = {
             id: lastReceipt.id,
             type: 'entry',
             timestamp: entryTime,
-            plate: plate,
+            plate,
             gateId: 'MAIN-ENTRY',
             receiptPrinted: true
         };
-        setLogs(prev => [newLog, ...prev].slice(0, 50));
+
+        if (isLocalMode) {
+            setLogs(prev => [newLog, ...prev].slice(0, 50));
+        } else {
+            try {
+                const { ParkingService } = await import('@/lib/db-service');
+                await ParkingService.updateSpot(freeSpot.id, {
+                    status: 'occupied',
+                    lastChanged: entryTime,
+                    vehicle: { plateCode: plate, city, entryTime }
+                });
+                await ParkingService.addLog(newLog);
+            } catch (error) {
+                console.error('Failed to persist entry to Firebase:', error);
+            }
+        }
 
         setIncomingCar(null);
         setLastReceipt(null);
         gateControlRef.current?.openEntryGate();
-    }, [lastReceipt, spots]);
+    }, [lastReceipt, spots, isLocalMode]);
 
-    // LOCAL MODE: Handle Exit
-    const handleExitLocal = useCallback(async (plate?: string) => {
+    // Unified Exit Handler
+    const handleExit = useCallback(async (plate?: string) => {
+        if (processingRef.current) return;
+
         let targetSpot: ParkingSpot | undefined;
-
         if (plate) {
             targetSpot = spots.find(s => s.status === 'occupied' && s.vehicle?.plateCode === plate);
         } else {
-            // Random exit logic - Ensure cars stay for at least 3 minutes
             const now = Date.now();
-            const occupiedSpots = spots.filter(s => {
+            const eligible = spots.filter(s => {
                 if (s.status !== 'occupied' || !s.vehicle) return false;
-                const entryTime = new Date(s.vehicle.entryTime).getTime();
-                return (now - entryTime) > 3 * 60 * 1000; // 3 minutes minimum stay
+                const entry = new Date(s.vehicle.entryTime).getTime();
+                return (now - entry) > PARKING_CONFIG.MIN_STAY_MINUTES * 60 * 1000;
             });
-
-            if (occupiedSpots.length > 0) {
-                targetSpot = occupiedSpots[Math.floor(Math.random() * occupiedSpots.length)];
+            if (eligible.length > 0) {
+                targetSpot = eligible[Math.floor(Math.random() * eligible.length)];
             }
         }
 
         if (!targetSpot || !targetSpot.vehicle) return;
 
-        const vehicleData = targetSpot.vehicle;
-        const targetSpotId = targetSpot.id;
+        processingRef.current = true;
+        try {
+            const vehicleData = targetSpot.vehicle;
+            const targetSpotId = targetSpot.id;
+            const exitTime = new Date();
+            const entryTime = new Date(vehicleData.entryTime);
+            const cost = calculateParkingCost(entryTime, exitTime);
 
-        // Calculate payment
-        const exitTime = new Date();
-        const entryTime = new Date(vehicleData.entryTime);
-        const durationMs = exitTime.getTime() - entryTime.getTime();
-        const durationHours = durationMs / (1000 * 60 * 60);
-        const cost = Math.max(2000, Math.ceil(durationHours) * 2000);
+            // Clear previous outgoing timer
+            if (outgoingTimerRef.current) {
+                clearTimeout(outgoingTimerRef.current);
+            }
 
-        // Animation
-        setOutgoingCar({ plate: vehicleData.plateCode, city: vehicleData.city });
+            setOutgoingCar({ plate: vehicleData.plateCode, city: vehicleData.city });
 
-        // Update spot locally (Free it)
-        setSpots(prev => prev.map(s =>
-            s.id === targetSpotId
-                ? {
-                    ...s,
-                    status: 'free' as const,
-                    lastChanged: exitTime,
-                    vehicle: undefined
+            // Update local state
+            setSpots(prev => prev.map(s =>
+                s.id === targetSpotId
+                    ? { ...s, status: 'free' as const, lastChanged: exitTime, vehicle: undefined }
+                    : s
+            ));
+
+            const newLog: LogEntry = {
+                id: `EXIT-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`,
+                type: 'exit',
+                timestamp: exitTime,
+                plate: vehicleData.plateCode,
+                gateId: 'MAIN-EXIT',
+                amount: cost
+            };
+
+            if (isLocalMode) {
+                setLogs(prev => [newLog, ...prev].slice(0, 50));
+            } else {
+                try {
+                    const { ParkingService } = await import('@/lib/db-service');
+                    await ParkingService.freeSpot(targetSpotId);
+                    await ParkingService.addLog(newLog);
+                } catch (error) {
+                    console.error('Failed to persist exit to Firebase:', error);
                 }
-                : s
-        ));
-
-        // Log Exit locally
-        const newLog: LogEntry = {
-            id: `EXIT-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`,
-            type: 'exit',
-            timestamp: exitTime,
-            plate: vehicleData.plateCode,
-            gateId: 'MAIN-EXIT',
-            amount: cost
-        };
-        setLogs(prev => [newLog, ...prev].slice(0, 50));
-
-        gateControlRef.current?.openExitGate();
-
-        setTimeout(() => {
-            setOutgoingCar(null);
-        }, 3000);
-    }, [spots]);
-
-    // FIREBASE MODE: Handlers (imported dynamically)
-    const handleEntryFirebase = useCallback(async (plate: string, city: string) => {
-        // Prevent infinite loop from CameraFeed callback
-        if (incomingCar?.plate === plate) return;
-
-        if (spots.some(s => s.vehicle?.plateCode === plate)) {
-            return;
-        }
-
-        // Auto-cancel any pending receipt from previous car
-        if (lastReceipt?.type === 'ENTRY') {
-            console.log('🔄 [AUTO-CANCEL] Previous entry cancelled - new car arriving');
-            setLastReceipt(null);
-        }
-
-        console.log('🚗 [ENTRY START] Plate:', plate, 'City:', city);
-        setIncomingCar({ plate, city });
-        await new Promise(r => setTimeout(r, 1000));
-
-        // Generate a stable ticket ID using timestamp + random string
-        const ticketId = `TKT-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
-        console.log('📋 [TICKET GENERATED]', ticketId);
-
-        setLastReceipt({
-            type: 'ENTRY',
-            id: ticketId,
-            plate: plate,
-            city: city,
-            entryTime: new Date()
-        });
-    }, [spots, lastReceipt, incomingCar]);
-
-    const finalizeEntryFirebase = useCallback(async (confirmed: boolean = true) => {
-        console.log('🔔 [FINALIZE ENTRY FIREBASE] Confirmed:', confirmed);
-        if (!confirmed) {
-            console.log('❌ [ENTRY CANCELLED]');
-            setIncomingCar(null);
-            setLastReceipt(null);
-            return;
-        }
-
-        if (!lastReceipt || lastReceipt.type !== 'ENTRY') {
-            console.log('⚠️ [NO RECEIPT] Cannot finalize');
-            return;
-        }
-
-        const { plate, city } = lastReceipt;
-        const freeSpot = spots.find(s => s.status === 'free');
-        if (!freeSpot) {
-            alert("No free spots available!");
-            setIncomingCar(null);
-            setLastReceipt(null);
-            return;
-        }
-
-        const entryTime = new Date();
-
-        const { ParkingService } = await import('@/lib/db-service');
-
-        await ParkingService.updateSpot(freeSpot.id, {
-            status: 'occupied',
-            lastChanged: entryTime,
-            vehicle: {
-                plateCode: plate,
-                city: city,
-                entryTime: entryTime
             }
-        });
 
-        await ParkingService.addLog({
-            id: lastReceipt.id,
-            type: 'entry',
-            timestamp: entryTime,
-            plate: plate,
-            gateId: 'MAIN-ENTRY',
-            receiptPrinted: true
-        });
+            gateControlRef.current?.openExitGate();
 
-        setIncomingCar(null);
-        setLastReceipt(null);
-        gateControlRef.current?.openEntryGate();
-    }, [lastReceipt, spots]);
-
-    const handleExitFirebase = useCallback(async (plate?: string) => {
-        let targetSpot: ParkingSpot | undefined;
-
-        if (plate) {
-            targetSpot = spots.find(s => s.status === 'occupied' && s.vehicle?.plateCode === plate);
-        } else {
-            // Ensure cars stay for at least 3 minutes
-            const now = Date.now();
-            const occupiedSpots = spots.filter(s => {
-                if (s.status !== 'occupied' || !s.vehicle) return false;
-                const entryTime = new Date(s.vehicle.entryTime).getTime();
-                return (now - entryTime) > 3 * 60 * 1000;
-            });
-
-            if (occupiedSpots.length > 0) {
-                targetSpot = occupiedSpots[Math.floor(Math.random() * occupiedSpots.length)];
-            }
+            outgoingTimerRef.current = setTimeout(() => {
+                setOutgoingCar(null);
+                outgoingTimerRef.current = null;
+            }, PARKING_CONFIG.OUTGOING_CAR_DISPLAY_MS);
+        } finally {
+            processingRef.current = false;
         }
+    }, [spots, isLocalMode]);
 
-        if (!targetSpot || !targetSpot.vehicle) return;
-
-        const vehicleData = targetSpot.vehicle;
-        const exitTime = new Date();
-        const entryTime = new Date(vehicleData.entryTime);
-        const durationMs = exitTime.getTime() - entryTime.getTime();
-        const durationHours = durationMs / (1000 * 60 * 60);
-        const cost = Math.max(2000, Math.ceil(durationHours) * 2000);
-
-        setOutgoingCar({ plate: vehicleData.plateCode, city: vehicleData.city });
-
-        const { ParkingService } = await import('@/lib/db-service');
-
-        await ParkingService.freeSpot(targetSpot.id);
-
-        await ParkingService.addLog({
-            id: `EXIT-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`,
-            type: 'exit',
-            timestamp: exitTime,
-            plate: vehicleData.plateCode,
-            gateId: 'MAIN-EXIT',
-            amount: cost
-        });
-
-        gateControlRef.current?.openExitGate();
-
-        setTimeout(() => {
-            setOutgoingCar(null);
-        }, 3000);
-    }, [spots]);
-
-    // Select handler based on mode
-    const handleEntry = isLocalMode ? handleEntryLocal : handleEntryFirebase;
-    const finalizeEntry = isLocalMode ? finalizeEntryLocal : finalizeEntryFirebase;
-    const handleExit = isLocalMode ? handleExitLocal : handleExitFirebase;
-
-    // Use refs to avoid recreating interval when handlers change
+    // Ref-based handlers for intervals
     const handleEntryRef = useRef(handleEntry);
     const handleExitRef = useRef(handleExit);
 
@@ -406,16 +289,13 @@ export function useParkingSystem() {
         handleExitRef.current = handleExit;
     }, [handleEntry, handleExit]);
 
-    // Auto Simulation Logic
+    // Auto Simulation
     useEffect(() => {
         let interval: NodeJS.Timeout;
         if (autoSimulate) {
-            // Trigger first car immediately for instant feedback
-            // ALWAYS force entry on start so user sees action immediately
             const { code, city } = generateLicensePlate();
             handleEntryRef.current(code, city);
 
-            // Then continue with 15-second intervals
             interval = setInterval(() => {
                 const randomAction = Math.random();
                 if (randomAction > 0.45) {
@@ -424,30 +304,17 @@ export function useParkingSystem() {
                 } else {
                     handleExitRef.current();
                 }
-            }, 15000); // 15 second intervals - gives time to manually print and control gate
+            }, PARKING_CONFIG.SIMULATION_INTERVAL_MS);
         }
         return () => clearInterval(interval);
-    }, [autoSimulate]); // Only restart interval when autoSimulate changes
+    }, [autoSimulate]);
 
     // Auto-confirm entry receipts in simulation mode - DISABLED
-    // Cars must be manually confirmed by clicking "Print and Open Gate"
-    // This ensures proper workflow: detect -> show receipt -> print -> open gate -> enter
     useEffect(() => {
-        // Log to console to prove this is disabled
         if (autoSimulate && lastReceipt?.type === 'ENTRY') {
-            console.log('🚗 CAR WAITING AT GATE - Manual print required!');
-            console.log('📋 Receipt ID:', lastReceipt.id);
-            console.log('🚫 AUTO-ENTRY IS DISABLED - Click "طباعة وفتح البوابة" to proceed');
+            // Manual confirmation required
         }
-
-        // Disabled auto-confirmation to require manual print
-        // if (autoSimulate && lastReceipt?.type === 'ENTRY') {
-        //     const timer = setTimeout(() => {
-        //         finalizeEntry(true);
-        //     }, 5000);
-        //     return () => clearTimeout(timer);
-        // }
-    }, [autoSimulate, lastReceipt, finalizeEntry]);
+    }, [autoSimulate, lastReceipt]);
 
     return {
         spots,
@@ -461,6 +328,7 @@ export function useParkingSystem() {
         autoSimulate,
         setAutoSimulate,
         mounted,
+        loading,
         handleEntry,
         handleExit,
         finalizeEntry,
